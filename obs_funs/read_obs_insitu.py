@@ -5,7 +5,7 @@ from dateutil.relativedelta import relativedelta
 from os.path import join, abspath
 #from collections import OrderedDict
 import sys
-sys.path.insert(0,'/home/h01/nvalient/frwave_python/ver_trials_scripts/matchup_for_trials/')
+sys.path.insert(0,'/home/h01/nvalient/fcm_python/ver_trials_scripts/matchup_for_trials/')
 import waves_matchup_rw as wamrw
 
 """

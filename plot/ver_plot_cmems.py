@@ -3,11 +3,16 @@
 # plotting routines to be used for CMEMS wave verification
 
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import numpy as np
+import scipy as sp
 import scipy.stats as stats
-#import iris
+from scipy.stats import t, norm, nct
 import cartopy.crs as ccrs
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
+
+import pyww3.general_funs.stats_fun as sf
+
 
 def MyValStr( value, units=None ):
     """create a value string"""
@@ -18,6 +23,41 @@ def MyValStr( value, units=None ):
     myvalstr = myvalstr.strip(' ')
 
     return myvalstr
+
+def get_tolerance(xdata,ydata,SI,rmse):
+    """function to obtain the confidence interval and the tolerance interval for scatter index and RMSE between
+    observations and model data"""
+    
+    # Two-sided inverse Students t-distribution
+    # p - probability, df - degrees of freedom            
+    tinv = lambda p, df: abs(t.ppf(p/2, df))
+    ts = tinv(0.05, len(xdata)-2) # 95% confidence
+            
+    # confidence intervals; Average t*Stdev*(1/sqrt(n))
+    #plt.plot(axlims,[fitvalmin+ts*fitvalmin,fitvalmax+ts*fitvalmax],'k..', linewidth=1, label='95% confidence')
+    print('[Information] The 95% confidence interval (scatter index) is = '+str(SI*ts))
+    print('[Information] The 95% confidence interval (RMSD) is = '+str(ts*rmse))
+    # prediction intervals; t*StDev*(sqrt(1+(1/n)))
+           
+    # Tolerance intervals; Average k*StDev
+    # sample size
+    n=len(xdata)
+    # Percentile for the TI to estimate
+    p=0.99
+    # confidence level
+    g = 0.95
+    # (100*p)th percentile of the standard normal distribution
+    zp = norm.ppf(p)
+    # gth quantile of a non-central t distribution
+    # with n-1 degrees of freedom and non-centrality parameter np.sqrt(n)*zp
+    tt = nct.ppf(g, df=n-1., nc=np.sqrt(n)*zp)
+    # k factor from Young et al paper
+    k = tt / np.sqrt(n)
+
+    print('[Information] The 99% tolerance interval for a 95% confidence (scatter index) is = '+str(k*SI))
+    print('[Information] The 99% tolerance interval for a 95% confidence (RMSD) is = '+str(k*rmse))
+    
+    return SI*ts, ts*rmse, k*SI, k*rmse
 
 
 def RoundAxLims(data,rndval=False,pad=False):
@@ -146,6 +186,8 @@ def PlotScatter( xdata, ydata, axisres=1.0, hexbin=None, linfit=False, grid=True
         fitvalmax = axlims[1] * m + c
 
     # plot the data
+    # 1:1 line
+    plt.plot( axlims, axlims, 'c-' )
 
     # scatter or hexbin
     if hexbin is None:
@@ -158,16 +200,20 @@ def PlotScatter( xdata, ydata, axisres=1.0, hexbin=None, linfit=False, grid=True
     # linear fit line
     if linfit:
         plt.plot(axlims,[fitvalmin,fitvalmax],'r--', linewidth=2, label='Linear Fit')
-
+    
+    # # apply axis limits
+    # plt.xlim( RoundAxLims( np.array([np.min(xdata),np.max(xdata)]), axisres) )
+    # plt.ylim( RoundAxLims( np.array([np.min(ydata),np.max(ydata)]), axisres) )
+    
     # apply axis limits
-    plt.xlim( RoundAxLims( np.array([np.min(xdata),np.max(xdata)]), axisres) )
-    plt.ylim( RoundAxLims( np.array([np.min(ydata),np.max(ydata)]), axisres) )
+    plt.xlim( axlims )
+    plt.ylim( axlims )
 
     # legend
     plt.legend(loc='lower right', fontsize='small')
 
     if grid:
-        plt.grid()
+        plt.grid(zorder=1)
 
     if showplt:
         plt.show()
@@ -175,10 +221,12 @@ def PlotScatter( xdata, ydata, axisres=1.0, hexbin=None, linfit=False, grid=True
     return
 
 
-def TextStats(xdata, ydata, units=None, linfit=True, errorstats=True, forplot=True, dirn=False):
+def TextStats(xdata, ydata, units=None, linfit=True, errorstats=True, forplot=False, ptloc=None, font=None,
+              tolerance=False, dirn=False):
     """Generates text strings for standard metrics.
        Output strings are either to be used with scatter plot layout (forplot=True), or
-       to be passed back for write to text file (forplot=False)"""
+       to be passed back for write to text file (forplot=False)
+       Note that if forplot=True, the location of the text and the fontsize can be specified"""
 
     # calculate the stats (might need to change the mean for medians for dirn data??)
     xmean = np.mean(xdata)
@@ -208,66 +256,84 @@ def TextStats(xdata, ydata, units=None, linfit=True, errorstats=True, forplot=Tr
         # i.e. 1.0 when si same as for observed mean as predictor
         sind = estd / ystd          # assume observed data will be y value
         syms = (xstd / ystd)**2.0   # assume observed data will be y value
+        if tolerance:
+            tsind, trmse, ksind, krmse = get_tolerance(xdata,ydata,sind,rmse)
 
     if linfit:
         m, c, r_value, p_value, stderr = stats.linregress(xdata, ydata)
-    
+            
     # plot the text, assumed in axis coordinates
     if forplot:
-        ypt = 1.00
-        dy  = 0.05
+        if not ptloc:
+            xpt = 0.1
+            ypt = 1.00
+            dy  = 0.05
+            ymax= ypt+0.05
+        else:
+            xpt = ptloc[0]
+            ypt = ptloc[1]
+            dy  = 0.15
+            ymax= ypt+0.05
+        if not font:
+            fonts = 'medium'
+        else:
+            fonts = font
         ypt = ypt - dy
-        plt.text(0.1,ypt,'X-Y Statistics')
+        plt.text(xpt,ypt,'X-Y Statistics',fontsize=fonts)
         ypt = ypt - dy
         myvalstr = '%d' %len(xdata)
-        plt.text(0.1,ypt,'No. data = ' + myvalstr, fontsize='medium' )
+        plt.text(xpt,ypt,'No. data = ' + myvalstr, fontsize=fonts )
         ypt = ypt - dy
         myvalstr = MyValStr( xmean, units=units )
-        plt.text(0.1,ypt,'Xmean = ' + myvalstr, fontsize='medium' )
+        plt.text(xpt,ypt,'Xmean = ' + myvalstr, fontsize=fonts )
         ypt = ypt - dy
         myvalstr = MyValStr( xstd, units=units )
-        plt.text(0.1,ypt,'Xstdev = ' + myvalstr, fontsize='medium' )
+        plt.text(xpt,ypt,'Xstdev = ' + myvalstr, fontsize=fonts )
         ypt = ypt - dy
         myvalstr = MyValStr( ymean, units=units )
-        plt.text(0.1,ypt,'Ymean = ' + myvalstr, fontsize='medium' )
+        plt.text(xpt,ypt,'Ymean = ' + myvalstr, fontsize=fonts )
         ypt = ypt - dy
         myvalstr = MyValStr( ystd, units=units )
-        plt.text(0.1,ypt,'Ystdev = ' + myvalstr, fontsize='medium' )
+        plt.text(xpt,ypt,'Ystdev = ' + myvalstr, fontsize=fonts )
         if errorstats:
             ypt = ypt - dy
-            plt.text(0.1,ypt,'----' )
+            plt.text(xpt,ypt,'----' )
             ypt = ypt - dy
-            plt.text(0.1,ypt,'X-Y Errors' )
+            plt.text(xpt,ypt,'X-Y Errors',fontsize=fonts )
             ypt = ypt - dy
             myvalstr = MyValStr( bias, units=units )
-            plt.text(0.1,ypt,'Bias = ' + myvalstr, fontsize='medium' )
+            plt.text(xpt,ypt,'Bias = ' + myvalstr, fontsize=fonts )
             ypt = ypt - dy
             myvalstr = MyValStr( rmse, units=units )
-            plt.text(0.1,ypt,'RMSD = ' + myvalstr, fontsize='medium' )
+            plt.text(xpt,ypt,'RMSD = ' + myvalstr, fontsize=fonts )
             ypt = ypt - dy
             myvalstr = MyValStr( estd, units=units )
-            plt.text(0.1,ypt,'StdE = ' + myvalstr, fontsize='medium' )
+            plt.text(xpt,ypt,'StdE = ' + myvalstr, fontsize=fonts )
             ypt = ypt - dy
             myvalstr = MyValStr( sind )
-            plt.text(0.1,ypt,'SI = ' + myvalstr, fontsize='medium' )
+            plt.text(xpt,ypt,'SI = ' + myvalstr, fontsize=fonts )
             ypt = ypt - dy
             myvalstr = MyValStr( syms )
-            plt.text(0.1,ypt,'Sym. Slope = ' + myvalstr, fontsize='medium' )
+            plt.text(xpt,ypt,'Sym. Slope = ' + myvalstr, fontsize=fonts )
         if linfit:
             ypt = ypt - dy
-            plt.text(0.1,ypt,'----' )
+            plt.text(xpt,ypt,'----' )
             ypt = ypt - dy
-            plt.text(0.1,ypt,'X-Y Linear Fit' )
+            plt.text(xpt,ypt,'X-Y Linear Fit', fontsize=fonts)
             ypt = ypt - dy
             myvalstr = MyValStr( r_value )
-            plt.text(0.1,ypt,'R = ' + myvalstr, fontsize='medium' )
+            plt.text(xpt,ypt,'R = ' + myvalstr, fontsize=fonts )
             ypt = ypt - dy
             myvalstr = MyValStr( m )
-            plt.text(0.1,ypt,'Slope = ' + myvalstr, fontsize='medium' )
+            plt.text(xpt,ypt,'Slope = ' + myvalstr, fontsize=fonts )
             ypt = ypt - dy
             myvalstr = MyValStr( c )
-            plt.text(0.1,ypt,'Offset = ' + myvalstr, fontsize='medium' )
-
+            plt.text(xpt,ypt,'Offset = ' + myvalstr, fontsize=fonts )
+        # Put stats in a box
+        xmax = 1.1
+        rect = patches.Rectangle((xpt-0.05,ypt-0.05),xmax-0.05,ymax-ypt, edgecolor='black', alpha=0.2, facecolor='white',zorder=3 )
+        
+        return rect
     # otherwise pass data out as a string
     else:
         outstr = '%d' %len(xdata)
@@ -289,7 +355,6 @@ def TextStats(xdata, ydata, units=None, linfit=True, errorstats=True, forplot=Tr
         return outstr
 
     return
-
 
 def ParaStrings():
     """Dictionary to define strings for the various variables we could be verifying.
@@ -362,3 +427,97 @@ def SetVerMap(extent, meridians, parallels, resolution='50m', projection=ccrs.Pl
     map.set_extent(extent, projection) 
 
     return map
+
+def plot_ci_manual(t, s_err, n, x, x2, y2, ax=None):
+    """Return an axes of confidence bands using a simple approach.
+    
+    Notes
+    -----
+    .. math:: \left| \: \hat{\mu}_{y|x0} - \mu_{y|x0} \: \right| \; \leq \; T_{n-2}^{.975} \; \hat{\sigma} \; \sqrt{\frac{1}{n}+\frac{(x_0-\bar{x})^2}{\sum_{i=1}^n{(x_i-\bar{x})^2}}}
+    .. math:: \hat{\sigma} = \sqrt{\sum_{i=1}^n{\frac{(y_i-\hat{y})^2}{n-2}}}
+    
+    References
+    ----------
+    .. [1] M. Duarte.  "Curve fitting," Jupyter Notebook.
+       http://nbviewer.ipython.org/github/demotu/BMC/blob/master/notebooks/CurveFitting.ipynb
+    
+    """
+    if ax is None:
+        ax = plt.gca()
+    
+    ci = t * s_err * np.sqrt(1/n + (x2 - np.mean(x))**2 / np.sum((x - np.mean(x))**2))
+    ax.fill_between(x2, y2 + ci, y2 - ci, color="#b9cfe7", edgecolor="")
+
+    return ax
+
+def plot_ci_bootstrap(xs, ys, resid, nboot=500, ax=None):
+    """Return an axes of confidence bands using a bootstrap approach.
+
+    Notes
+    -----
+    The bootstrap approach iteratively resampling residuals.
+    It plots `nboot` number of straight lines and outlines the shape of a band.
+    The density of overlapping lines indicates improved confidence.
+
+    Returns
+    -------
+    ax : axes
+        - Cluster of lines
+        - Upper and Lower bounds (high and low) (optional)  Note: sensitive to outliers
+
+    References
+    ----------
+    .. [1] J. Stults. "Visualizing Confidence Intervals", Various Consequences.
+       http://www.variousconsequences.com/2010/02/visualizing-confidence-intervals.html
+
+    """ 
+    if ax is None:
+        ax = plt.gca()
+
+    bootindex = sp.random.randint
+
+    for _ in range(nboot):
+        resamp_resid = resid[bootindex(0, len(resid) - 1, len(resid))]
+        # Make coeffs of for polys
+        pc = sp.polyfit(xs, ys + resamp_resid, 1)                   
+        # Plot bootstrap cluster
+        ax.plot(xs, sp.polyval(pc, xs), "b-", linewidth=2, alpha=3.0 / float(nboot))
+
+    return ax
+
+def PlotScatterCI( xdata, ydata, CI=None):
+    """plot scatter data"""
+     
+    axisres=1
+    # set axis limits
+    axlims = RoundAxLims( np.array([np.min(xdata),np.min(ydata),np.max(xdata),np.max(ydata)]), axisres)
+
+    # calculate a least squares linear fit
+    m, c, r_value, p_value, stderr = stats.linregress(xdata, ydata)
+    fitvalmin = axlims[0] * m + c
+    fitvalmax = axlims[1] * m + c
+
+    # plot the data
+    fig, ax = plt.subplots()
+    # 1:1 line
+    ax.plot( axlims, axlims, 'c-' )
+    
+    ax.scatter( xdata, ydata, s=2, color='grey' )
+    
+    # Call function to obtain CI and PI bands
+    t, resid, s_err, y_model, x2, y2, pi = sf.get_comp_CIandPIbands(xdata,ydata)
+    # Fit
+    ax.plot(xdata, y_model, "-", color="0.1", linewidth=1.5, alpha=0.5, label="Fit")  
+    
+    # Plot confidence Interval (select one)
+    if CI:
+        plot_ci_bootstrap(xdata, ydata, resid, ax=ax)
+    else:    
+        plot_ci_manual(t, s_err, len(xdata), xdata, x2, y2, ax=ax)
+
+    # Plot prediction interval
+    ax.fill_between(x2, y2 + pi, y2 - pi, color="None", linestyle="--")
+    ax.plot(x2, y2 - pi, "--", color="0.5", label="95% Prediction Limits")
+    ax.plot(x2, y2 + pi, "--", color="0.5")
+
+    return
