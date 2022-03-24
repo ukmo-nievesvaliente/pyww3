@@ -109,7 +109,7 @@ def get_dict():
     VAR['taw']['cbarn'] =  '$\\tau_{aw}\ [Nm^{-2}]$'
     VAR['taw']['limits'] = [0,3]
     VAR['taw']['limits_diff'] = [-0.4,0.4]
-    VAR['taw']['density'] = [1023]
+    VAR['taw']['density'] = [1000.]
     
     VAR['ust']={}
     VAR['ust']['short_n'] = ['uust','vust']
@@ -122,14 +122,14 @@ def get_dict():
     VAR['tauaww3']['short_n'] = ['uust','vust','rhoa']
     VAR['tauaww3']['colorbar'] = 'jet'
     VAR['tauaww3']['cbarn'] =  '$\\tau_{a}\ [Nm^{-2}]$'
-    VAR['tauaww3']['limits'] = [0,4]
+    VAR['tauaww3']['limits'] = [0,3]
     VAR['tauaww3']['limits_diff'] = [-0.2,0.2]
     
     VAR['taua']={}
     VAR['taua']['short_n'] = ['utaua','vtaua']
-    VAR['taua']['colorbar'] = 'jet'
+    VAR['taua']['colorbar'] = 'gist_heat'#'jet'
     VAR['taua']['cbarn'] =  '$\\tau_{a}\ [Nm^{-2}]$'
-    VAR['taua']['limits'] = [0,4]
+    VAR['taua']['limits'] = [0,3]
     VAR['taua']['limits_diff'] = [-0.2,0.2]
     
     VAR['uss']={}
@@ -145,7 +145,7 @@ def get_dict():
     VAR['two']['cbarn'] =  '$\\tau_{wo}\ [Nm^{-2}]$'
     VAR['two']['limits'] = [0,4]
     VAR['two']['limits_diff'] = [-0.4,0.4]
-    VAR['two']['density'] = [1023.]
+    VAR['two']['density'] = [1000.]
     
     VAR['Uc']={}
     VAR['Uc']['short_n'] = ['ucur','vcur']
