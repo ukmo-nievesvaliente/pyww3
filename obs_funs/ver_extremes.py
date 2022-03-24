@@ -31,9 +31,13 @@ from scipy.stats.stats import pearsonr
 def var_inObs(obstype,all_var=False):
     if all_var == True:
         if obstype == 'WFVS' or obstype == 'SHPSYN':
-            VAR = ['hs','ws','wdir','tp','t02']            
+            # VAR = ['hs','ws','wdir','tp','t02']  sometimes we have t0m1 instead of Tp
+            #VAR = ['hs','ws','wdir','t02'] 
+            VAR = ['hs','ws','wdir','tp']
         elif obstype == 'WAVENET':
-            VAR = ['hs','tp','t02','dir','spr']
+            # VAR = ['hs','tp','t02','dir','spr']  sometimes we have t0m1 instead of Tp
+            #VAR = ['hs','t02','dir','spr']
+            VAR = ['hs','tp','dir']
     else:
         if obstype == 'WFVS' or obstype == 'SHPSYN':
             VAR = ['hs','ws','wdir']
@@ -42,8 +46,13 @@ def var_inObs(obstype,all_var=False):
     
     return VAR
 
-def get_NCfile(obsDir,obstype,run,t):
-    FILEN      = os.path.join(obsDir,run,'match_'+obstype+'_'+run+'_'+t+'.nc')
+def get_NCfile(obsDir,obstype,t,run,run_folder=None):
+    if run_folder is not None:
+        run_dir = run_folder
+    else:
+        run_dir = run
+        
+    FILEN = os.path.join(obsDir,run_dir,'match_'+obstype+'_'+run+'_'+t+'.nc')
     return FILEN
 
 def get_NCvar(FNAME,u_ID,VAR):  
@@ -89,7 +98,7 @@ def get_NCvar(FNAME,u_ID,VAR):
     return tJ,var_obs,var_mod,sidJ,idN,units,var_dim,coordinate
 
 
-def get_depth_offshelf(obstype,ndir,run,tini):
+def get_depth_offshelf(obstype,ndir,run,tini,run_folder=None):
     
     """Function to obtain the index (I_IN AND I_OFF) of the observations that are located on-shelf and off-shelf"""
     
@@ -104,7 +113,7 @@ def get_depth_offshelf(obstype,ndir,run,tini):
 
     # ------------------------------------------------
     # Try extracting Ids using a matchup Dataset
-    Jfile      = get_NCfile(ndir,obstype,run,tini)
+    Jfile      = get_NCfile(ndir,obstype,tini,run,run_folder)
     obs        = nc4.Dataset(Jfile,"r")
     lat_new    = np.array(obs.variables["latitude_obs"])
     lon_new    = np.array(obs.variables["longitude_obs"])
@@ -131,6 +140,23 @@ def get_depth_offshelf(obstype,ndir,run,tini):
     
     return I_IN, I_OFF, IDs, LOC_N, COORD_ID
 
+# ---------------------------------------------------------------------------
+def get_obs_ID(obstype,ndir,run,tini,run_folder=None):
+    
+    """Function to obtain Ids, coordinates and names of the observations """
+    
+    # ------------------------------------------------
+    # Try extracting Ids using a matchup Dataset
+    Jfile      = get_NCfile(ndir,obstype,tini,run,run_folder)
+    obs        = nc4.Dataset(Jfile,"r")
+    IDs        = np.array(obs.variables["station_id"])
+    LOC_N      = np.array(obs.variables['station_name'])
+    
+    # ------------------------------------------------
+    COORD_ID = np.column_stack((obs.variables["longitude_obs"][:],obs.variables["latitude_obs"][:]))
+    obs.close()
+    
+    return IDs, LOC_N, COORD_ID
 
 # ---------------------------------------------------------------------------
 # Define function to compute RMSE
@@ -140,7 +166,7 @@ def rmse(predictions, targets):
 
 # --------------------------------------------------------------------------- 
     
-def get_timeseries(ndir,obstype,run,TINI,TEND,u_ID,VAR):
+def get_timeseries(ndir,obstype,run,TINI,TEND,u_ID,VAR,run_folder=None):
    
     """Function to build the timeseries per location (IDs)"""
        
@@ -154,7 +180,7 @@ def get_timeseries(ndir,obstype,run,TINI,TEND,u_ID,VAR):
         filedate = start_date.strftime("%Y%m%d")
         print(['[INFO] Extracting date = '+filedate])
         # build file name, e.g., match_SHPSYN_UKC4aow-st6_20140208.nc
-        fileName = get_NCfile(ndir,obstype,run,filedate)
+        fileName = get_NCfile(ndir,obstype,filedate,run,run_folder)
             
         # variables to extract: time, station_id, hs_obs, hs_Hx, tp_obs, tp_Hx
         if filedate == TINI:
@@ -182,7 +208,7 @@ def get_timeseries(ndir,obstype,run,TINI,TEND,u_ID,VAR):
     return var_mod, var_obs, datesJ, station_ID, name_ID, COORD
 
 
-def get_extremes_CSV(ndir,out_dir,obstype,COORD_ID,LOC_N,RUN,TINI,TEND,Q1,Q2,VAR,opt=None):
+def get_extremes_CSV(ndir,out_dir,obstype,COORD_ID,LOC_N,RUN,TINI,TEND,Q1,Q2,VAR,run_folder=None,opt=None):
     """Function to call the timeseries function per location (IDs) and get the extremes"""
     # BUILD TIMESERIES AND GET EXTREMES
     
@@ -217,7 +243,7 @@ def get_extremes_CSV(ndir,out_dir,obstype,COORD_ID,LOC_N,RUN,TINI,TEND,Q1,Q2,VAR
         u_ID = u[kk]   
         print('[INFO] Computation of '+u_ID+' for '+RUN+' - COORD = '+str(COORD_ID[indices[kk]])) 
         
-        var_mod, var_obs, datesJ, sidJ, idN, COORD = get_timeseries(ndir,obstype,RUN,TINI,TEND,u_ID,VAR)
+        var_mod, var_obs, datesJ, sidJ, idN, COORD = get_timeseries(ndir,obstype,RUN,TINI,TEND,u_ID,VAR,run_folder)
         # TO DO: Possibility to add a condition for when we want to plot the timeseries?
         
         # ----------------------------------------------------------------------

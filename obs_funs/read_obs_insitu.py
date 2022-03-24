@@ -7,6 +7,7 @@ from os.path import join, abspath
 import sys
 sys.path.insert(0,'/home/h01/nvalient/fcm_python/ver_trials_scripts/matchup_for_trials/')
 import waves_matchup_rw as wamrw
+import read_JCOMM_wave_new as rjcomm
 
 """
 Created on Mon Feb  8 16:07:19 2021
@@ -31,10 +32,15 @@ def read_SHPSYN(cycle, fcday=0):
 def read_WFVS(cycle, fcday=0):
     dirInF = join(dirIn,'JCOMM_WFVS')
     cycstr = cycle.strftime('%m%Y')
-    fname = 'waves_'+ cycstr[4:6] + cycstr[0:2] + '_t000'
-    ncfile = dirInF + '/' + fname
+    if int(cycstr[2:6]) >= 2020:
+        dirInEND = dirInF + '/' + cycstr[2:6] + '/' 
+        ncfile = dirInEND + '_data_' + cycstr[2:6]+cycstr[0:2]+'.txt'
+        
+    else:
+        fname = 'waves_'+ cycstr[4:6] + cycstr[0:2] + '_t000'
+        ncfile = dirInF + '/' + fname
     
-    return ncfile    
+    return ncfile
     
 def read_WAVENET(cycle, fcday=0):
     """Generates a Met Office model output file name"""      
@@ -82,9 +88,23 @@ class varTimeseries:
         """Load data from observation files"""
         print('[INFO] Loading in data from %s; %s' %(varname,ncfile))
         self.varname        = varname
-        if obs_name == 'WFVS':
+        
+        if obs_name in 'WFVS':
+            print('[DEBUG] Entering in the if condition for WFVS')
             buoylist    = '/data/cr1/frxs/waves_python/r1272_79/ver_trials_scripts/platform_lists/proposed_buoy_list_intercomparison_October2013'
-            sitesobs, idsobs, latsobs, lonsobs, vtobs, wsobs, wdobs, hsobs, tpobs, tzobs, teobs = wamrw.read_wfvs(ncfile, buoylist)
+            if '_data_' in ncfile:                
+                obs_file = ncfile[-10:]
+                dirIn = ncfile[:-16]
+                # call to function to read new file in read_JCOMM_wave_new
+                print('[INFO] New month, reading observation data from: '+'*'+ncfile)
+                sitesobs, idsobs, latsobs, lonsobs, vtobs, hsobs, tpobs, tzobs, teobs, wsobs, wdobs = rjcomm.read_wfvsAllVar(dirIn, obs_file, buoylist)
+            else:
+                sitesobs, idsobs, latsobs, lonsobs, vtobs, wsobs, wdobs, hsobs, tpobs, tzobs, teobs = wamrw.read_wfvs(ncfile, buoylist)
+                print('[DEBUG] list id obs is '+idsobs)      
+            print('[DEBUG] id obs is '+IDs)
+            print('[DEBUG] NOT PRINTINGGGG')
+            
+            print('[DEBUG] Hs is '+hsobs)
             imask = idsobs == IDs
             ia = np.where(imask==1)[0][0]
             self.lat        = latsobs[imask]

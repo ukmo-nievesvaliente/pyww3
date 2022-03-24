@@ -260,7 +260,7 @@ def extract_point_timeseries_nc(infiles, ind, obs_id, ncout, obs_lat=None,
 
                     # for all other variables, extract for each time:
                     for itime in range(ntimes):
-                        print(f"    - {itime}")
+                        #print(f"    - {itime}")
 
                         if varname == 'wspd' and 'wspd' not in d.variables:
                             # special case for wind speed: derive from uwnd and vwnd

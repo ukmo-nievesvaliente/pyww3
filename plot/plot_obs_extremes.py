@@ -48,6 +48,20 @@ def get_contours_NWS_bat():
     
     return lon, lat, bat
 
+def get_contours_GBL_bat():
+        
+    # Reading bathymetry
+    bathy_file = '/data/users/nvalient/GMD_paper/data/gbl_dpt_4xres.nc'
+    print("Reading "+bathy_file)
+    fbathy     = nc.Dataset(bathy_file,"r")
+    bathy      = np.array(fbathy.variables["dpt"][0,:,:])
+    lat        = np.array(fbathy.variables["standard_latitude"])
+    lon        = np.array(fbathy.variables["standard_longitude"])
+    fbathy.close()
+    bat = np.ma.masked_where(bathy < 200., bathy)
+    
+    return lon, lat, bat
+
 def var_inObs(all_var=False):
     if all_var == True:
         VAR_PLT = ['hs','ws','wdir','tp','t02','dir','spr']            
@@ -145,14 +159,20 @@ def var_inObs4plot(var):
     
     return VAR_4PLOT
 
-def plot_obs_stats(out_dir,lon_stat,lat_stat,var,val_stat,run,Q):
+def plot_obs_stats(out_dir,lon_stat,lat_stat,var,val_stat,run,Q,nwshelf=True):
     
     land_50 = fill_land_cfeature()
     VAR_4PLOT = var_inObs4plot(var)
-    
-    lon, lat, bat = get_contours_NWS_bat()
+    if nwshelf is True:
+        lon, lat, bat = get_contours_NWS_bat()
+        levels = [40,80,120,240]
+        print('[INFO] Domain is NWshelf')
+    if nwshelf is not True:
+        lon, lat, bat = get_contours_GBL_bat()
+        levels = [200,500,1000,2000,3000,4000,5000]
+        print('[INFO] Domain is GBL')
+        
     VARs = get_dict()
-    levels = [40,80,120,240]
     
     #print('[Debug] vars 4 plot are '+str(VAR_4PLOT))
     for ii,stat in enumerate(VAR_4PLOT):
@@ -161,24 +181,32 @@ def plot_obs_stats(out_dir,lon_stat,lat_stat,var,val_stat,run,Q):
         
         fig2 = plt.figure()
         axes = fig2.add_subplot(111,projection=ccrs.PlateCarree())
-        a = axes.contour(lon,lat,bat, levels, colors=(.4, .4, .4),linewidths=.25)
+        a = axes.contour(lon,lat,bat, levels, colors='grey',linewidths=.25)
         axes.coastlines(resolution='50m', color='black', linewidth=1)
         axes.add_feature(land_50,zorder=1)
-        axes.clabel(a, inline=True, fmt = '%3.0f', fontsize=6)
-        e = axes.scatter(lon_stat,lat_stat,c=rr,s=(np.ones((1,len(rr))))*10,cmap=VARs[stat]['colorbar'],\
-                         vmin=VARs[stat]['limits'][0],vmax=VARs[stat]['limits'][1],zorder=2)
-        cbar = fig2.colorbar(e,extend='both')
+        if nwshelf is True:
+            axes.clabel(a, inline=True, fmt = '%3.0f', fontsize=6)
+            e = axes.scatter(lon_stat,lat_stat,c=rr,s=(np.ones((1,len(rr))))*12,cmap=VARs[stat]['colorbar'],\
+                             vmin=VARs[stat]['limits'][0],vmax=VARs[stat]['limits'][1],zorder=2)
+            cbar = fig2.colorbar(e,extend='both')
+            axes.scatter(lon_stat,lat_stat,c='k',marker="x",s=0.6,zorder=3)
+        if nwshelf is not True:
+            e = axes.scatter(lon_stat,lat_stat,c=rr,s=(np.ones((1,len(rr))))*2,cmap=VARs[stat]['colorbar'],\
+                             vmin=VARs[stat]['limits'][0],vmax=VARs[stat]['limits'][1],zorder=2)
+            cbar = fig2.colorbar(e,shrink=0.7,extend='both')
+            axes.scatter(lon_stat,lat_stat,c='k',marker="x",s=0.4,zorder=3)
         #cbar.set_label(VAR[stat]['short_n'])
-        axes.set_xticks([-12,-6,0,6],crs=ccrs.PlateCarree())
-        axes.set_yticks([48,54,60],crs=ccrs.PlateCarree())
         #axes.gridlines()
         axes.set_axisbelow(True)
         lon_formatter = LongitudeFormatter(zero_direction_label=True)
         lat_formatter = LatitudeFormatter()
         axes.xaxis.set_major_formatter(lon_formatter)
         axes.yaxis.set_major_formatter(lat_formatter)
-        axes.set_xlim([-13,9])
-        axes.set_ylim([45,63])
+        if nwshelf is True:
+            axes.set_xticks([-12,-6,0,6],crs=ccrs.PlateCarree())
+            axes.set_yticks([48,54,60],crs=ccrs.PlateCarree())
+            axes.set_xlim([-13,9])
+            axes.set_ylim([45,63])
         plt.title(VARs[stat]['short_n']+' for '+run+' - '+Q,fontsize=8)
         out_name2 = join(out_dir,run+'_'+stat+'_'+Q+'.png')
         print("Saving figure " +out_name2)
@@ -187,14 +215,21 @@ def plot_obs_stats(out_dir,lon_stat,lat_stat,var,val_stat,run,Q):
     
     return
 
-def plot_obs_stats_r(out_dir,lon_stat,lat_stat,var,val_stat,run,Q):
+def plot_obs_stats_r(out_dir,lon_stat,lat_stat,var,val_stat,run,Q,nwshelf=True):
     
     land_50 = fill_land_cfeature()
     VAR_4PLOT = var_inObs4plot(var)
     
-    lon, lat, bat = get_contours_NWS_bat()
+    if nwshelf is True:
+        lon, lat, bat = get_contours_NWS_bat()
+        levels = [40,80,120,240]
+        print('[INFO] Domain is NWshelf')
+    if nwshelf is not True:
+        lon, lat, bat = get_contours_GBL_bat()
+        levels = [200,500,1000,2000,3000,4000,5000]
+        print('[INFO] Domain is GBL')
+    
     VAR = get_dict()
-    levels = [40,80,120,240]
     
     for ii,stat in enumerate(VAR_4PLOT):
         # Iterate over the different stats that can be plotted
@@ -202,24 +237,32 @@ def plot_obs_stats_r(out_dir,lon_stat,lat_stat,var,val_stat,run,Q):
         
         fig2 = plt.figure()
         axes = fig2.add_subplot(111,projection=ccrs.PlateCarree())
-        a = axes.contour(lon,lat,bat, levels, colors=(.4, .4, .4),linewidths=.25)
+        a = axes.contour(lon,lat,bat, levels, colors='grey',linewidths=.25)
         axes.coastlines(resolution='50m', color='black', linewidths=1)
         axes.add_feature(land_50, zorder=1)
-        axes.clabel(a, inline=True, fmt = '%3.0f', fontsize=6)
-        e = axes.scatter(lon_stat,lat_stat,c=rr,s=(np.ones((1,len(rr))))*10,cmap='seismic',\
-                         vmin=VAR[stat]['limits_diff'][0],vmax=VAR[stat]['limits_diff'][1], zorder=2)
-        cbar = fig2.colorbar(e,extend='both')
+        if nwshelf is True:
+            axes.clabel(a, inline=True, fmt = '%3.0f', fontsize=6)
+            e = axes.scatter(lon_stat,lat_stat,c=rr,s=(np.ones((1,len(rr))))*12,cmap='seismic',\
+                             vmin=VAR[stat]['limits_diff'][0],vmax=VAR[stat]['limits_diff'][1], zorder=2)
+            cbar = fig2.colorbar(e,extend='both')
+            axes.scatter(lon_stat,lat_stat,c='k',marker="x",s=0.6,zorder=3)
+        if nwshelf is not True:
+            e = axes.scatter(lon_stat,lat_stat,c=rr,s=(np.ones((1,len(rr))))*2,cmap='seismic',\
+                             vmin=VAR[stat]['limits_diff'][0],vmax=VAR[stat]['limits_diff'][1], zorder=2)     
+            cbar = fig2.colorbar(e,shrink=0.7,extend='both')
+            axes.scatter(lon_stat,lat_stat,c='k',marker="x",s=0.4,zorder=3)
         #cbar.set_label(VAR[stat]['short_n'])
-        axes.set_xticks([-12,-6,0,6],crs=ccrs.PlateCarree())
-        axes.set_yticks([48,54,60],crs=ccrs.PlateCarree())
         axes.gridlines()
         axes.set_axisbelow(True)
         lon_formatter = LongitudeFormatter(zero_direction_label=True)
         lat_formatter = LatitudeFormatter()
         axes.xaxis.set_major_formatter(lon_formatter)
         axes.yaxis.set_major_formatter(lat_formatter)
-        axes.set_xlim([-13,9])
-        axes.set_ylim([45,63])
+        if nwshelf is True:
+            axes.set_xticks([-12,-6,0,6],crs=ccrs.PlateCarree())
+            axes.set_yticks([48,54,60],crs=ccrs.PlateCarree())
+            axes.set_xlim([-13,9])
+            axes.set_ylim([45,63])
         plt.title(VAR[stat]['short_n']+' for '+run+' relative to ctr'+' - '+Q,fontsize=8)
         out_name2 = join(out_dir,run+'_relative2ctrl_'+stat+'_'+Q+'.png')
         print("Saving figure " +out_name2)

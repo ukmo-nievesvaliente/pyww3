@@ -7,6 +7,7 @@ import netCDF4 as nc
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
+import general_funs.wavemaths_fun as wmf
 #from pathlib import Path
 
 def fill_land_cfeature(color='silver'):
@@ -71,15 +72,15 @@ def get_dict():
     VAR['cha']['short_n'] = 'cha'
     VAR['cha']['cbarn'] =  '$\\alpha$'
     VAR['cha']['colorbar'] = 'hot'
-    VAR['cha']['limits'] = [0,0.032]
+    VAR['cha']['limits'] = [0,0.035]
     VAR['cha']['limits_diff'] = [-0.011,0.011]
     
     VAR['fp']={}
     VAR['fp']['short_n'] = 'fp'
     VAR['fp']['cbarn'] =  '$f_p\ [s^{-1}]$'
     VAR['fp']['colorbar'] = 'gist_stern_r'
-    VAR['fp']['limits'] = [0,0.]
-    VAR['fp']['limits_diff'] = [-0.1,0.1]
+    VAR['fp']['limits'] = [0,0.05]
+    VAR['fp']['limits_diff'] = [-0.01,0.01]
     
     VAR['t01']={}
     VAR['t01']['short_n'] = 't01'
@@ -87,6 +88,13 @@ def get_dict():
     VAR['t01']['colorbar'] = 'gist_stern_r'
     VAR['t01']['limits'] = [0,18]
     VAR['t01']['limits_diff'] = [-2,2]
+    
+    VAR['t02']={}
+    VAR['t02']['short_n'] = 't01'
+    VAR['t02']['cbarn'] =  '$T_{01}\ [s]$'
+    VAR['t02']['colorbar'] = 'gist_stern_r'
+    VAR['t02']['limits'] = [0,18]
+    VAR['t02']['limits_diff'] = [-2,2]
     
     VAR['u10']={}
     VAR['u10']['short_n'] = ['uwnd','vwnd']
@@ -97,11 +105,11 @@ def get_dict():
     
     VAR['taw']={}
     VAR['taw']['short_n'] = ['utaw','vtaw']
-    VAR['taw']['colorbar'] = 'RdYlB'
+    VAR['taw']['colorbar'] = 'gist_heat'
     VAR['taw']['cbarn'] =  '$\\tau_{aw}\ [Nm^{-2}]$'
-    VAR['taw']['limits'] = [0,4]
+    VAR['taw']['limits'] = [0,3]
     VAR['taw']['limits_diff'] = [-0.4,0.4]
-    VAR['taw']['density'] = [1.225]
+    VAR['taw']['density'] = [1023]
     
     VAR['ust']={}
     VAR['ust']['short_n'] = ['uust','vust']
@@ -110,14 +118,14 @@ def get_dict():
     VAR['ust']['limits'] = [0,2]
     VAR['ust']['limits_diff'] = [-0.2,0.2]
     
-    VAR['tauaww3']={}
+    VAR['tauaww3']={}  # This is the variable with three dimensions instead of 2
     VAR['tauaww3']['short_n'] = ['uust','vust','rhoa']
     VAR['tauaww3']['colorbar'] = 'jet'
     VAR['tauaww3']['cbarn'] =  '$\\tau_{a}\ [Nm^{-2}]$'
     VAR['tauaww3']['limits'] = [0,4]
     VAR['tauaww3']['limits_diff'] = [-0.2,0.2]
     
-    VAR['taua']={} # This is the variable with three dimensions instead of 2
+    VAR['taua']={}
     VAR['taua']['short_n'] = ['utaua','vtaua']
     VAR['taua']['colorbar'] = 'jet'
     VAR['taua']['cbarn'] =  '$\\tau_{a}\ [Nm^{-2}]$'
@@ -127,7 +135,7 @@ def get_dict():
     VAR['uss']={}
     VAR['uss']['short_n'] = ['uuss','vuss']
     VAR['uss']['colorbar'] = 'inferno' # or gnuplot
-    VAR['uss']['cbarn'] =  '$\\U_{ss}\ [ms^{-1}]$'
+    VAR['uss']['cbarn'] =  '$U_{ss}\ [ms^{-1}]$'
     VAR['uss']['limits'] = [0,2]
     VAR['uss']['limits_diff'] = [-0.2,0.2]
     
@@ -137,7 +145,7 @@ def get_dict():
     VAR['two']['cbarn'] =  '$\\tau_{wo}\ [Nm^{-2}]$'
     VAR['two']['limits'] = [0,4]
     VAR['two']['limits_diff'] = [-0.4,0.4]
-    VAR['two']['density'] = [1036]
+    VAR['two']['density'] = [1023.]
     
     VAR['Uc']={}
     VAR['Uc']['short_n'] = ['ucur','vcur']
@@ -153,7 +161,25 @@ def get_dict():
     VAR['rhoa']['limits'] = [1.1,1.27]
     VAR['rhoa']['limits_diff'] = [-0.1,0.1]
     
+    VAR['wave_age']={}
+    VAR['wave_age']['short_n'] =  ['uust','vust']
+    VAR['wave_age']['colorbar'] = 'Set1'
+    VAR['wave_age']['cbarn'] =  '$u_*\ /\ c_p$'
+    VAR['wave_age']['limits'] = [0,0.1] # For inverse wave age
+    VAR['wave_age']['limits_diff'] = [-0.04,0.04] # For inverse wave age
+    
     return VAR    
+
+def get_limits_plots(matrix):
+    """ Get min and max values of a variable in order to get a neat plot
+    Input: matrix with variable values 
+    """
+    dup = []
+    for k in matrix:
+        for i in k:
+            dup.append(i)
+    
+    return max(dup), min(dup)
 
 def get_snapshots(filer, ST, var,  dimension, out_name, title_ini):
     
@@ -165,6 +191,9 @@ def get_snapshots(filer, ST, var,  dimension, out_name, title_ini):
         
     @author: nvalient
     """
+    
+    print('Plotting snapshots')
+    print('Using file '+filer)
     
     land_50 = fill_land_cfeature()
     
@@ -178,6 +207,14 @@ def get_snapshots(filer, ST, var,  dimension, out_name, title_ini):
         u11   = d.variables[VAR[var]['short_n'][0]]
         u12   = d.variables[VAR[var]['short_n'][1]]
         hs    = np.sqrt(u11[:,:,:]**2+u12[:,:,:]**2)
+        if var == 'taw':
+            #print('Using rho water to compute Taw: '+str(VAR[var]['density'][:]))
+            hs = hs*VAR[var]['density'][:]
+        elif var == 'wave_age':
+            dp1 = d.variables['dpt']
+            fp1 = d.variables['fp']
+            tp1 = 1./fp1[:,:,:]
+            hs,wage1 = wmf.calc_wave_age(dp1[:,:,:],tp1[:,:,:],u11[:,:,:],u12[:,:,:])
     
     elif dimension == '3D': # valid for the computation of the atmospheric stress from tau=rho*Ufric**2
         u11   = d.variables[VAR[var]['short_n'][0]]
@@ -196,7 +233,7 @@ def get_snapshots(filer, ST, var,  dimension, out_name, title_ini):
     lat        = d.variables['latitude'][:]
     lon        = d.variables['longitude'][:]
  
-    for i in range(0,4):#range(len(t_storm)):
+    for i in range(len(t_storm)):#range(0,4):
                    
         # PLOT 
         fig2 = plt.figure(figsize=(10, 5))
@@ -256,6 +293,11 @@ def get_snapshots_diff(filer1, filer2, ST, var,  dimension, out_name, title_ini)
     d     = nc.Dataset(filer1)    
     d2    = nc.Dataset(filer2)
     
+    print('Plotting snapshots')
+    print('Difference between file '+filer1)
+    print('and')
+    print('file '+filer2)
+    
     if dimension == '1D':    
         if var in d2.variables:
             hs1   = d.variables[var][:,:,:]
@@ -279,6 +321,20 @@ def get_snapshots_diff(filer1, filer2, ST, var,  dimension, out_name, title_ini)
         u21   = d2.variables[VAR[var]['short_n'][0]]
         u22   = d2.variables[VAR[var]['short_n'][1]]
         U2 = np.sqrt(u21[:,:,:]**2+u22[:,:,:]**2)
+        
+        if var == 'taw':
+            #print('Using rho water to compute Taw: '+str(VAR[var]['density'][:]))
+            hs = hs*VAR[var]['density'][:]
+        elif var == 'wave_age':
+            dp1 = d.variables['dpt']
+            fp1 = d.variables['fp']
+            tp1 = 1./fp1[:,:,:]
+            U1,wage1 = wmf.calc_wave_age(dp1[:,:,:],tp1[:,:,:],u11[:,:,:],u12[:,:,:])
+            dp2 = d2.variables['dpt']
+            fp2 = d2.variables['fp']
+            tp2 = 1./fp2[:,:,:]
+            U2,wage2 = wmf.calc_wave_age(dp2[:,:,:],tp2[:,:,:],u21[:,:,:],u22[:,:,:])
+        
         hs = U1-U2
         
     elif dimension == '3D': # valid for the computation of the atmospheric stress from tau=rho*Ufric**2
@@ -345,6 +401,11 @@ def get_mean_diff(filer1, filer2, ST, var,  dimension, out_name, title_ini):
     @author: nvalient
     """
     
+    print('Plotting mean difference')
+    print('Difference between file '+filer1)
+    print('and')
+    print('file '+filer2)
+    
     land_50 = fill_land_cfeature() 
     
     VAR   = get_dict()
@@ -375,6 +436,9 @@ def get_mean_diff(filer1, filer2, ST, var,  dimension, out_name, title_ini):
         u22   = d2.variables[VAR[var]['short_n'][1]]
         U2 = np.sqrt(u21[:,:,:]**2+u22[:,:,:]**2)
         hs = np.nanmean(U1[:,:,:]-U2[:,:,:],axis=0)
+        if var == 'taw':
+            #print('Using rho water to compute Taw: '+str(VAR[var]['density'][:]))
+            hs = hs*VAR[var]['density'][:]
         
     elif dimension == '3D': # valid for the computation of the atmospheric stress from tau=rho*Ufric**2
         u11   = d.variables[VAR[var]['short_n'][0]]
@@ -438,6 +502,9 @@ def get_mean(filer, ST, var,  dimension, out_name, title_ini):
         
     @author: nvalient
     """
+    
+    print('Plotting mean')
+    print('Using file '+filer)
     
     land_50 = fill_land_cfeature()
     
