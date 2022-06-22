@@ -31,16 +31,18 @@ from scipy.stats.stats import pearsonr
 def var_inObs(obstype,all_var=False):
     if all_var == True:
         if obstype == 'WFVS' or obstype == 'SHPSYN':
-            # VAR = ['hs','ws','wdir','tp','t02']  sometimes we have t0m1 instead of Tp
+            #VAR = ['hs','ws','wdir','tp','t02']  #sometimes we have t0m1 instead of Tp
             #VAR = ['hs','ws','wdir','t02'] 
-            VAR = ['hs','ws','wdir','tp']
+            VAR = ['hs','t02']
+            #VAR = ['hs','ws','wdir','tp']
         elif obstype == 'WAVENET':
-            # VAR = ['hs','tp','t02','dir','spr']  sometimes we have t0m1 instead of Tp
+            VAR = ['hs','tp','t02','dir','spr']  #sometimes we have t0m1 instead of Tp
             #VAR = ['hs','t02','dir','spr']
-            VAR = ['hs','tp','dir']
+            #VAR = ['t02']
+            #VAR = ['hs','tp','dir']
     else:
         if obstype == 'WFVS' or obstype == 'SHPSYN':
-            VAR = ['hs','ws','wdir']
+            VAR = ['hs','ws','wdir','t02']
         elif obstype == 'WAVENET':
             VAR = ['hs','t02']
     
@@ -199,7 +201,7 @@ def get_timeseries(ndir,obstype,run,TINI,TEND,u_ID,VAR,run_folder=None):
     
     # Include NaNs in fill values if any
     Nm = var_obs == -32768
-    var_obs[Nm] = np.nan
+    var_obs[Nm] = np.NaN
     station_ID = sidJ[0]
     name_ID = idN[0]
     #print('[Debug] coordinates are ='+str(coordinates))
@@ -255,8 +257,11 @@ def get_extremes_CSV(ndir,out_dir,obstype,COORD_ID,LOC_N,RUN,TINI,TEND,Q1,Q2,VAR
         var_stormM = np.nanpercentile(var_mod[0], Q1)
         var_extM = np.nanpercentile(var_mod[0], Q2)
 
-        # Loop to get stats per location        
-        if np.isnan(var_storm) == False: # when observations          
+        # Loop to get stats per location  
+        if np.isnan(var_obs).all() == True:
+            print('No obs for '+u_ID)
+        #if 
+        elif np.isnan(var_storm) == False: # when observations          
             if opt == 1 or opt == None:
                 # obtain mask; obs + model condition > Q
                 print('[INFO] the threshold for Hs,q75 is '+str(var_storm)+' [m]') 
@@ -271,6 +276,8 @@ def get_extremes_CSV(ndir,out_dir,obstype,COORD_ID,LOC_N,RUN,TINI,TEND,Q1,Q2,VAR
                 mext       = np.logical_and((var_obs[0] >= min_ext),(var_mod[0] >= min_ext)) # Q90
                   
             # Do some QC for the extremes; is the sample statistically significant? only if p-value < 0.1
+            print('[Debug] var_mod is :'+str(var_mod))
+            print('[Debug] var_mod is :'+str(var_obs))
             QC = pearsonr(var_mod[0,mstorm],var_obs[0,mstorm])
             print('[INFO] The p-value for Hs,q75 is ' +str(QC[1]))
             if QC[1] <= 0.1:                

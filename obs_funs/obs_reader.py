@@ -1,5 +1,7 @@
 import numpy as np
 from collections import OrderedDict
+import os
+import csv
 
 def obs_reader(File):
   
@@ -34,3 +36,63 @@ def obs_reader(File):
         OBS.append(STATION)
 
     return OBS
+
+def get_mean_stats(stat):
+    return np.nanmean(np.array(stat))
+
+def read_summary_csv(fileIn):
+    """Function to read the .CSV files with the summary stats;
+    Stats are per location (IDs)
+    
+    Average stats are printed"""
+    
+    if os.path.exists(fileIn) == True:     
+        lat = []
+        lon = []
+        mean = []
+        b   = []
+        rmse = []
+        r   = []
+        std = []
+              
+        # Read SumamrStats.CSV file per variable
+        header = ['ID','Lat','Lon','Samples','Model Mean','Model Std','Ob Mean','Ob Std',
+                  'Bias','RMSD','Error Std','SI','Sym Slope','R value','Slope','Offset'] 
+                  
+        with open(fileIn, mode='r') as csvfile:
+            print('[Info] Reading '+fileIn)
+            next(csvfile) # skip first line
+            csvreader = csv.DictReader(csvfile, delimiter=',')
+
+            for lines in csvreader:
+                mean.append(lines['Ob Mean'])
+                b.append(lines['Bias'])
+                rmse.append(lines['RMSD'])
+                lat.append(lines['Lat'])
+                lon.append(lines['Lon'])
+                r.append(lines['R value'])
+                std.append(lines['Error Std'])
+        
+        for i in range(len(b)):
+            if b[i] == 'nan':
+                b[i] = np.nan
+                mean[i] = np.nan
+                r[i] = np.nan
+                rmse[i] = np.nan
+                std[i] = np.nan
+            else:
+                mean[i] = float(mean[i])
+                b[i] = float(b[i])
+                r[i] = float(r[i])
+                rmse[i] = float(rmse[i])
+                std[i] = float(std[i])
+
+        lat = list(map(float,lat))
+        lon = list(map(float,lon))
+        
+        #print('[Debug] bias = ' + str(b1))            
+        Mstats = [get_mean_stats(b),get_mean_stats(r),get_mean_stats(rmse),get_mean_stats(std)] 
+        print('Mean stats '+' - [bias,r,rmsd,std] = ')
+        print(str(Mstats))
+                
+    return lat, lon, mean, b, rmse, std, r 

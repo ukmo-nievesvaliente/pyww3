@@ -213,7 +213,7 @@ def PlotScatter( xdata, ydata, axisres=1.0, hexbin=None, linfit=False, grid=True
     plt.legend(loc='lower right', fontsize='small')
 
     if grid:
-        plt.grid(zorder=1)
+        plt.grid(linewidth=0.5,zorder=1)
 
     if showplt:
         plt.show()
@@ -221,7 +221,7 @@ def PlotScatter( xdata, ydata, axisres=1.0, hexbin=None, linfit=False, grid=True
     return
 
 
-def TextStats(xdata, ydata, units=None, linfit=True, errorstats=True, forplot=False, ptloc=None, font=None,
+def TextStats(xdata, ydata, units=None, linfit=True, errorstats=True, basicstats=False, forplot=False, ptloc=None, font=None,
               tolerance=False, dirn=False):
     """Generates text strings for standard metrics.
        Output strings are either to be used with scatter plot layout (forplot=True), or
@@ -272,32 +272,48 @@ def TextStats(xdata, ydata, units=None, linfit=True, errorstats=True, forplot=Fa
         else:
             xpt = ptloc[0]
             ypt = ptloc[1]
-            dy  = 0.15
+            if ypt < 5:
+                ypt = 4.7
+            if max(ydata)>=9 and max(ydata)<=16:
+                dy = 0.36
+                dy  = 0.4 #STB
+            elif max(ydata)>=16 and max(ydata)<40:
+                dy  = 0.58
+            elif max(ydata)>40 and max(ydata)<250:
+                dy  = 2.
+            elif max(ydata)>250:
+                dy  = 15.
+            elif max(ydata) >= 6 and max(ydata) < 9:
+                dy  = 0.22
+            else:
+                dy  = 0.18
             ymax= ypt+0.05
         if not font:
             fonts = 'medium'
         else:
             fonts = font
-        ypt = ypt - dy
-        plt.text(xpt,ypt,'X-Y Statistics',fontsize=fonts)
-        ypt = ypt - dy
-        myvalstr = '%d' %len(xdata)
-        plt.text(xpt,ypt,'No. data = ' + myvalstr, fontsize=fonts )
-        ypt = ypt - dy
-        myvalstr = MyValStr( xmean, units=units )
-        plt.text(xpt,ypt,'Xmean = ' + myvalstr, fontsize=fonts )
-        ypt = ypt - dy
-        myvalstr = MyValStr( xstd, units=units )
-        plt.text(xpt,ypt,'Xstdev = ' + myvalstr, fontsize=fonts )
-        ypt = ypt - dy
-        myvalstr = MyValStr( ymean, units=units )
-        plt.text(xpt,ypt,'Ymean = ' + myvalstr, fontsize=fonts )
-        ypt = ypt - dy
-        myvalstr = MyValStr( ystd, units=units )
-        plt.text(xpt,ypt,'Ystdev = ' + myvalstr, fontsize=fonts )
-        if errorstats:
+        
+        if basicstats:    
+            ypt = ypt - dy
+            plt.text(xpt,ypt,'X-Y Statistics',fontsize=fonts)
+            ypt = ypt - dy
+            myvalstr = '%d' %len(xdata)
+            plt.text(xpt,ypt,'No. data = ' + myvalstr, fontsize=fonts )
+            ypt = ypt - dy
+            myvalstr = MyValStr( xmean, units=units )
+            plt.text(xpt,ypt,'Xmean = ' + myvalstr, fontsize=fonts )
+            ypt = ypt - dy
+            myvalstr = MyValStr( xstd, units=units )
+            plt.text(xpt,ypt,'Xstdev = ' + myvalstr, fontsize=fonts )
+            ypt = ypt - dy
+            myvalstr = MyValStr( ymean, units=units )
+            plt.text(xpt,ypt,'Ymean = ' + myvalstr, fontsize=fonts )
+            ypt = ypt - dy
+            myvalstr = MyValStr( ystd, units=units )
+            plt.text(xpt,ypt,'Ystdev = ' + myvalstr, fontsize=fonts )
             ypt = ypt - dy
             plt.text(xpt,ypt,'----' )
+        if errorstats:            
             ypt = ypt - dy
             plt.text(xpt,ypt,'X-Y Errors',fontsize=fonts )
             ypt = ypt - dy
@@ -330,8 +346,13 @@ def TextStats(xdata, ydata, units=None, linfit=True, errorstats=True, forplot=Fa
             myvalstr = MyValStr( c )
             plt.text(xpt,ypt,'Offset = ' + myvalstr, fontsize=fonts )
         # Put stats in a box
-        xmax = 1.1
-        rect = patches.Rectangle((xpt-0.05,ypt-0.05),xmax-0.05,ymax-ypt, edgecolor='black', alpha=0.2, facecolor='white',zorder=3 )
+        if max(xdata) <=5:
+            xmax = max(xdata)/4 + 0.5
+            xmax = max(xdata)/3 + 0.7 #STB
+        else:
+            xmax = max(xdata)/4
+            xmax = max(xdata)/3 #STB
+        rect = patches.Rectangle((xpt-0.05,ypt-0.05),xmax-0.05,ymax-ypt, edgecolor='black', alpha=0.5, facecolor='white',zorder=3 )
         
         return rect
     # otherwise pass data out as a string

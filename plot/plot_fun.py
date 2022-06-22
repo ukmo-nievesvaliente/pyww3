@@ -8,8 +8,9 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
 import general_funs.wavemaths_fun as wmf
-import plot.plot_obs_extremes as poext
+import pyww3.plot.plot_obs_extremes as poext
 #from pathlib import Path
+transform = ccrs.PlateCarree()
 
 def fill_land_cfeature(color='silver'):
     """Fill land when using Cartopy
@@ -488,7 +489,7 @@ def get_mean_diff(filer1, filer2, ST, var,  dimension, out_name, title_ini):
     axes.set_xmargin(0)
     axes.set_ymargin(0)
     cmap = 'seismic'
-    pc = axes.pcolormesh(lon, lat, hs, cmap = cmap, vmin = VAR[var]['limits_diff'][0], vmax = VAR[var]['limits_diff'][1])
+    pc = axes.pcolormesh(lon, lat, hs, cmap = cmap, shading = 'auto', vmin = VAR[var]['limits_diff'][0], vmax = VAR[var]['limits_diff'][1])
     cbar = fig2.colorbar(pc)
     cbar.ax.tick_params(labelsize=12)
     cbar.set_label(VAR[var]['cbarn'],size=12)
@@ -607,7 +608,7 @@ def get_inset_obs_location(lonID,latID,IDs,typeobs,out_name,nwshelf=True,saveplo
     # Get bathy (from amm15)
     if nwshelf is True:
         lon, lat, bat = poext.get_contours_NWS_bat()
-        levels = [40,80,120,240,500.,1000.,1500,2000,4000]
+        levels = [40,120,240,500.,1000.,1500,2000,4000]
         print('[INFO] Domain is NWshelf')
     if nwshelf is not True:
         lon, lat, bat = poext.get_contours_GBL_bat()
@@ -615,27 +616,32 @@ def get_inset_obs_location(lonID,latID,IDs,typeobs,out_name,nwshelf=True,saveplo
         print('[INFO] Domain is GBL')
 
     fig = plt.figure(figsize=(3,3.5))
-    axes = fig.add_subplot(111,projection=ccrs.PlateCarree())
-    acs = axes.contour(lon, lat, bat, levels, colors='darkgrey',linewidths=0.5)
+    #axes = fig.add_subplot(111,projection=ccrs.PlateCarree())
+    axes = fig.add_subplot(111,projection=ccrs.Mercator(central_longitude=0))
+    acs = axes.contour(lon, lat, bat, levels, colors='lightgrey',linewidths=0.25,zorder=0,transform=transform)
     if nwshelf is True:
         # plot the shelf-break
-        acs2 = axes.contour(lon, lat, bat, [200.], colors='black',linewidths=0.7)         
+        acs2 = axes.contour(lon, lat, bat, [200.], colors='darkgrey',linewidths=0.5,zorder=5,transform=transform)        
 
-    axes.coastlines(resolution='50m', color='black', linewidth=1)
-    axes.add_feature(land_50)
-    axes.plot(lonID,latID,'.',color = 'orangered', markersize=12, markeredgecolor = 'k', markeredgewidth = 0.5)
+    axes.coastlines(resolution='50m', color='black', linewidth=1,zorder=10)
+    axes.add_feature(land_50,zorder=15)
     for ii,ids in enumerate(IDs):
-        axes.text(lonID[ii]+0.3,latID[ii]+0.3,ids,color='black',fontsize=8,weight='bold')    
-        axes.plot(lonID[ii],latID[ii],'.',color = get_color_marker(typeobs[ii]), markersize=12, markeredgecolor = 'k', markeredgewidth = 0.5)
+        axes.plot(lonID[ii],latID[ii],'.',color = get_color_marker(typeobs[ii]), markersize=12, 
+                  markeredgecolor = 'k', markeredgewidth = 0.5, zorder=20,transform=transform)
+        axes.text(lonID[ii]+0.3,latID[ii]+0.3,ids,color='black',fontsize=8,weight='bold', zorder=25,transform=transform)    
     
     # Finish plot    
     if nwshelf is True:
-        axes.set_xlim([-16,9])
-        axes.set_ylim([44.5,63])
+        # axes.set_xticks([-12,-6,0,6],crs=ccrs.PlateCarree())
+        # axes.set_yticks([48,54,60],crs=ccrs.PlateCarree())
+        ## axes.set_extent([-14,11,45,63],crs=ccrs.PlateCarree())
+        axes.set_extent([-14,11,48,53],crs=ccrs.PlateCarree())
+        # axes.set_xlim([-14.5,9])
+        # axes.set_ylim([45,63])
     if saveplot is True:        
         plt.savefig(out_name,bbox_inches="tight", pad_inches=0.1, dpi=200)
         plt.close()
-    
+        print('Saving '+out_name)
     return
 
 # def get_snapshots_diff_2subplots(filer1, filer2, ST, subplot, VARS, dimensions, out_name, title_ini):

@@ -3,7 +3,8 @@
 """
 Created on Tue Nov 16 15:14:05 2021
 
-    SET OF FUNCTIONS TO PLOT OBSERVATIONS
+    SET OF FUNCTIONS TO PLOT MEAN STATISTICS OF MODEL RUNS AGAINST  IN-SITU OBSERVATIONS
+    TO dO: add the possibility to compute basic stats from MA data (including the gridding option)
 
 @author: nvalient
 """
@@ -66,24 +67,60 @@ def get_contours_GBL_bat():
 
 def var_inObs(all_var=False):
     if all_var == True:
-        VAR_PLT = ['hs','ws','wdir','tp','t02','dir','spr']            
+        VAR_PLT = ['Hs','Ws','Wdir','Tp','T02','Dir','Spr']            
     else:
-        VAR_PLT = ['hs','t02']
-        #VAR_PLT = ['hs','ws','wdir','t02']
+        #VAR_PLT = ['Hs','T02']
+        VAR_PLT = ['Hs','Ws','T02']
     
     return VAR_PLT
+
 
 def get_dict():
     
     """
-    Created on 30 September 15:17:23 2021
+    Created 22 June 15:17:23 2022
     
-    Function to create dictionary with some of the variables and stats that can be read from the extremes.csv file   
+    Function to create dictionary with some of the mean variables that can be read from .csv file
+    Values can be extracted using previously the  read_summary_csv function
+    E.g.: import obs_funs.obs_reader as obsread 
+          obsread.read_summary_csv(fileIn) 
+    
         
     @author: nvalient
     """
-    # ------------------ BIAS -----------------------
+    # ------------------ MEAN -----------------------
     VAR = {}
+    VAR['mean_ws']={}
+    VAR['mean_ws']['short_n'] = 'U10'
+    VAR['mean_ws']['colorbar'] = 'PiYG_r'
+    VAR['mean_ws']['limits'] = [0,16]
+    VAR['mean_ws']['limits_diff'] = [-4,4]
+    
+    VAR['mean_wdir']={}
+    VAR['mean_wdir']['short_n'] = 'U10 dir'
+    VAR['mean_wdir']['colorbar'] = 'PiYG_r'
+    VAR['mean_wdir']['limits'] = [0,360]
+    VAR['mean_wdir']['limits_diff'] = [-4,4]
+    
+    VAR['mean_hs']={}
+    VAR['mean_hs']['short_n'] = 'Hs'
+    VAR['mean_hs']['colorbar'] = 'PiYG_r'
+    VAR['mean_hs']['limits'] = [0,7]
+    VAR['mean_hs']['limits_diff'] = [-2,2]
+    
+    VAR['mean_tp']={}
+    VAR['mean_tp']['short_n'] = 'Tp'
+    VAR['mean_tp']['colorbar'] = 'PiYG_r'
+    VAR['mean_tp']['limits'] = [0,12]
+    VAR['mean_tp']['limits_diff'] = [-2,2]
+    
+    VAR['mean_t02']={}
+    VAR['mean_t02']['short_n'] = 'T02'
+    VAR['mean_t02']['colorbar'] = 'PiYG_r'
+    VAR['mean_t02']['limits'] = [0,12]
+    VAR['mean_t02']['limits_diff'] = [-2,2]  
+    # ------------------ BIAS -----------------------
+    
     VAR['bias_ws']={}
     VAR['bias_ws']['short_n'] = 'U10 bias'
     VAR['bias_ws']['colorbar'] = 'PiYG_r'
@@ -111,7 +148,7 @@ def get_dict():
     VAR['bias_t02']={}
     VAR['bias_t02']['short_n'] = 'T02 bias'
     VAR['bias_t02']['colorbar'] = 'PiYG_r'
-    VAR['bias_t02']['limits'] = [-3,3]
+    VAR['bias_t02']['limits'] = [-2,2]
     VAR['bias_t02']['limits_diff'] = [-2,2]    
     
     # ------------------ RMSD -----------------------
@@ -119,7 +156,7 @@ def get_dict():
     VAR['rmse_ws']={}
     VAR['rmse_ws']['short_n'] = 'U10 RMSD'
     VAR['rmse_ws']['colorbar'] = 'gist_stern_r'
-    VAR['rmse_ws']['limits'] = [0,4]
+    VAR['rmse_ws']['limits'] = [0,3]
     VAR['rmse_ws']['limits_diff'] = [-1,1]
     
     VAR['rmse_wdir']={}
@@ -131,7 +168,7 @@ def get_dict():
     VAR['rmse_hs']={}
     VAR['rmse_hs']['short_n'] = 'Hs RMSD'
     VAR['rmse_hs']['colorbar'] = 'gist_stern_r'
-    VAR['rmse_hs']['limits'] = [0,1.5]
+    VAR['rmse_hs']['limits'] = [0,0.8]
     VAR['rmse_hs']['limits_diff'] = [-1,1]
 
     VAR['rmse_tp']={}
@@ -143,26 +180,65 @@ def get_dict():
     VAR['rmse_t02']={}
     VAR['rmse_t02']['short_n'] = 'T02 RMSD'
     VAR['rmse_t02']['colorbar'] = 'gist_stern_r'
-    VAR['rmse_t02']['limits'] = [0,2.5]
+    VAR['rmse_t02']['limits'] = [0,2]
     VAR['rmse_t02']['limits_diff'] = [-1,1]   
     
+    # ------------------ Error STD -----------------------
+    VAR['error_std_t02']={}
+    VAR['error_std_t02']['short_n'] = 'T02 StdE'
+    VAR['error_std_t02']['colorbar'] = 'brg'
+    VAR['error_std_t02']['limits'] = [0,2]
+    VAR['error_std_t02']['limits_diff'] = [-1,1]
+    
+    VAR['error_std_hs']={}
+    VAR['error_std_hs']['short_n'] = 'Hs StdE'
+    VAR['error_std_hs']['colorbar'] = 'brg'
+    VAR['error_std_hs']['limits'] = [0,0.8]
+    VAR['error_std_hs']['limits_diff'] = [-1,1] 
+    
+    VAR['error_std_ws']={}
+    VAR['error_std_ws']['short_n'] = 'U10 StdE'
+    VAR['error_std_ws']['colorbar'] = 'brg'
+    VAR['error_std_ws']['limits'] = [0,3]
+    VAR['error_std_ws']['limits_diff'] = [-1,1]
+    
+    # ------------------ PIERSON corr coef -----------------------
+    
+    VAR['pierson_t02']={}
+    VAR['pierson_t02']['short_n'] = 'T02 r'
+    VAR['pierson_t02']['colorbar'] = 'terrain_r'
+    VAR['pierson_t02']['limits'] = [0.75,1.]
+    VAR['pierson_t02']['limits_diff'] = [-1,1]
+    
+    VAR['pierson_hs']={}
+    VAR['pierson_hs']['short_n'] = 'Hs r'
+    VAR['pierson_hs']['colorbar'] = 'terrain_r'
+    VAR['pierson_hs']['limits'] = [0.9,1.]
+    VAR['pierson_hs']['limits_diff'] = [-1,1] 
+    
+    VAR['pierson_ws']={}
+    VAR['pierson_ws']['short_n'] = 'U10 r'
+    VAR['pierson_ws']['colorbar'] = 'brg'
+    VAR['pierson_ws']['limits'] = [0.85,1.]
+    VAR['pierson_ws']['limits_diff'] = [-1,1] 
+        
     return VAR
 
 def var_inObs4plot(var):
-    if var == 'hs':
-        VAR_4PLOT = ['bias_hs','rmse_hs']
-    elif var == 'ws':
-        VAR_4PLOT = ['bias_ws','rmse_ws']
-    elif var == 'tp':
+    if var == 'Hs':
+        VAR_4PLOT = ['mean_hs','bias_hs','rmse_hs','error_std_hs','pierson_hs']
+    elif var == 'Ws':
+        VAR_4PLOT = ['mean_ws','bias_ws','rmse_ws','error_std_ws','pierson_ws']
+    elif var == 'Tp':
         VAR_4PLOT = ['bias_tp','rmse_tp']
-    elif var == 't02':
-        VAR_4PLOT = ['bias_t02','rmse_t02']
-    elif var == 'wdir':
+    elif var == 'T02':
+        VAR_4PLOT = ['mean_t02','bias_t02','rmse_t02','error_std_t02','pierson_t02']
+    elif var == 'Wdir':
         VAR_4PLOT = ['bias_wdir','rmse_wdir']
     
     return VAR_4PLOT
 
-def plot_obs_stats(out_dir,lon_stat,lat_stat,var,val_stat,run,Q,nwshelf=True):
+def plot_obs_stats(out_dir,lon_stat,lat_stat,var,val_stat,run,nwshelf=True):
     
     land_50 = fill_land_cfeature()
     VAR_4PLOT = var_inObs4plot(var)
@@ -212,18 +288,18 @@ def plot_obs_stats(out_dir,lon_stat,lat_stat,var,val_stat,run,Q,nwshelf=True):
             axes.set_extent([-14,11,45,63],crs=ccrs.PlateCarree())
             # axes.set_xlim([-13,9])
             # axes.set_ylim([45,63])
-        plt.title(VARs[stat]['short_n']+' for '+run+' - '+Q,fontsize=8)
-        out_name2 = join(out_dir,run+'_'+stat+'_'+Q+'.png')
+        plt.title(VARs[stat]['short_n']+' for '+run,fontsize=8)
+        out_name2 = join(out_dir,run+'_'+stat+'.png')
         print("Saving figure " +out_name2)
         plt.savefig(out_name2,bbox_inches="tight", pad_inches=0.1,dpi=300)
         plt.close()
     
     return
 
-def plot_obs_stats_r(out_dir,lon_stat,lat_stat,var,val_stat,run,Q,nwshelf=True):
+def plot_obs_stats_r(out_dir,lon_stat,lat_stat,var,val_stat,run,nwshelf=True):
     
     land_50 = fill_land_cfeature()
-    VAR_4PLOT = var_inObs4plot(var)
+    VAR_4PLOT = var_inObs4plot(var) # includes the mean values; not relevant to plot the relative change as it should be =0
     
     if nwshelf is True:
         lon, lat, bat = get_contours_NWS_bat()
@@ -237,43 +313,48 @@ def plot_obs_stats_r(out_dir,lon_stat,lat_stat,var,val_stat,run,Q,nwshelf=True):
     VAR = get_dict()
     
     for ii,stat in enumerate(VAR_4PLOT):
-        # Iterate over the different stats that can be plotted
-        rr = val_stat[ii]
         
-        fig2 = plt.figure()
-        #axes = fig2.add_subplot(111,projection=ccrs.PlateCarree())
-        axes = fig2.add_subplot(111,projection=ccrs.Mercator())
-        a = axes.contour(lon,lat,bat, levels, colors='grey',linewidths=.25,transform = transform)
-        axes.coastlines(resolution='50m', color='black', linewidths=1)
-        axes.add_feature(land_50, zorder=1)
-        if nwshelf is True:
-            axes.clabel(a, inline=True, fmt = '%3.0f', fontsize=6)
-            e = axes.scatter(lon_stat,lat_stat,c=rr,s=(np.ones((1,len(rr))))*12,cmap='seismic',\
-                             vmin=VAR[stat]['limits_diff'][0],vmax=VAR[stat]['limits_diff'][1], transform = transform,zorder=2)
-            cbar = fig2.colorbar(e,extend='both')
-            axes.scatter(lon_stat,lat_stat,c='k',marker="x",s=0.6,transform = transform,zorder=3)
-        if nwshelf is not True:
-            e = axes.scatter(lon_stat,lat_stat,c=rr,s=(np.ones((1,len(rr))))*2,cmap='seismic',\
-                             vmin=VAR[stat]['limits_diff'][0],vmax=VAR[stat]['limits_diff'][1], transform = transform,zorder=2)     
-            cbar = fig2.colorbar(e,shrink=0.7,extend='both')
-            #axes.scatter(lon_stat,lat_stat,c='k',marker="x",s=0.4,zorder=3)
-        #cbar.set_label(VAR[stat]['short_n'])
-        #axes.gridlines()
-        axes.set_axisbelow(True)
-        lon_formatter = LongitudeFormatter(zero_direction_label=True)
-        lat_formatter = LatitudeFormatter()
-        axes.xaxis.set_major_formatter(lon_formatter)
-        axes.yaxis.set_major_formatter(lat_formatter)
-        if nwshelf is True:
-            axes.set_xticks([-12,-6,0,6],crs=ccrs.PlateCarree())
-            axes.set_yticks([48,54,60],crs=ccrs.PlateCarree())
-            # axes.set_xlim([-13,9])
-            # axes.set_ylim([45,63])
-            axes.set_extent([-14,11,45,63],crs=ccrs.PlateCarree())
-        plt.title(VAR[stat]['short_n']+' for '+run+' relative to ctr'+' - '+Q,fontsize=8)
-        out_name2 = join(out_dir,run+'_relative2ctrl_'+stat+'_'+Q+'.png')
-        print("Saving figure " +out_name2)
-        plt.savefig(out_name2,bbox_inches="tight", pad_inches=0.1,dpi=300)
-        plt.close()
+        if len(VAR_4PLOT) == 5 and ii == 0: # jump plotting relative mean values
+            continue
+        else:           
+            
+            # Iterate over the different stats that can be plotted
+            rr = val_stat[ii]
+            
+            fig2 = plt.figure()
+            #axes = fig2.add_subplot(111,projection=ccrs.PlateCarree())
+            axes = fig2.add_subplot(111,projection=ccrs.Mercator())
+            a = axes.contour(lon,lat,bat, levels, colors='grey',linewidths=.25,transform = transform)
+            axes.coastlines(resolution='50m', color='black', linewidths=1)
+            axes.add_feature(land_50, zorder=1)
+            if nwshelf is True:
+                axes.clabel(a, inline=True, fmt = '%3.0f', fontsize=6)
+                e = axes.scatter(lon_stat,lat_stat,c=rr,s=(np.ones((1,len(rr))))*12,cmap='seismic',\
+                                 vmin=VAR[stat]['limits_diff'][0],vmax=VAR[stat]['limits_diff'][1], transform = transform,zorder=2)
+                cbar = fig2.colorbar(e,extend='both')
+                axes.scatter(lon_stat,lat_stat,c='k',marker="x",s=0.6,transform = transform,zorder=3)
+            if nwshelf is not True:
+                e = axes.scatter(lon_stat,lat_stat,c=rr,s=(np.ones((1,len(rr))))*2,cmap='seismic',\
+                                 vmin=VAR[stat]['limits_diff'][0],vmax=VAR[stat]['limits_diff'][1], transform = transform,zorder=2)     
+                cbar = fig2.colorbar(e,shrink=0.7,extend='both')
+                #axes.scatter(lon_stat,lat_stat,c='k',marker="x",s=0.4,zorder=3)
+            #cbar.set_label(VAR[stat]['short_n'])
+            #axes.gridlines()
+            axes.set_axisbelow(True)
+            lon_formatter = LongitudeFormatter(zero_direction_label=True)
+            lat_formatter = LatitudeFormatter()
+            axes.xaxis.set_major_formatter(lon_formatter)
+            axes.yaxis.set_major_formatter(lat_formatter)
+            if nwshelf is True:
+                axes.set_xticks([-12,-6,0,6],crs=ccrs.PlateCarree())
+                axes.set_yticks([48,54,60],crs=ccrs.PlateCarree())
+                # axes.set_xlim([-13,9])
+                # axes.set_ylim([45,63])
+                axes.set_extent([-14,11,45,63],crs=ccrs.PlateCarree())
+            plt.title(VAR[stat]['short_n']+' for '+run+' relative to ctr',fontsize=8)
+            out_name2 = join(out_dir,run+'_relative2ctrl_'+stat+'.png')
+            print("Saving figure " +out_name2)
+            plt.savefig(out_name2,bbox_inches="tight", pad_inches=0.1,dpi=300)
+            plt.close()
     
     return
