@@ -17,7 +17,7 @@ import pyww3.general_funs.stats_fun as sf
 def MyValStr( value, units=None ):
     """create a value string"""
 
-    myvalstr = '%8.3f' %value
+    myvalstr = '%8.2f' %value
     if units is not None:
         myvalstr = myvalstr + units
     myvalstr = myvalstr.strip(' ')
@@ -338,7 +338,7 @@ def TextStats(xdata, ydata, units=None, linfit=True, errorstats=True, basicstats
             plt.text(xpt,ypt,'X-Y Linear Fit', fontsize=fonts)
             ypt = ypt - dy
             myvalstr = MyValStr( r_value )
-            plt.text(xpt,ypt,'R = ' + myvalstr, fontsize=fonts )
+            plt.text(xpt,ypt,'r = ' + myvalstr, fontsize=fonts )
             ypt = ypt - dy
             myvalstr = MyValStr( m )
             plt.text(xpt,ypt,'Slope = ' + myvalstr, fontsize=fonts )
