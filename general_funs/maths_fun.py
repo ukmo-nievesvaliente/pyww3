@@ -4,7 +4,50 @@ import numpy as np
 from scipy.signal import butter,filtfilt
 import scipy.spatial as sp
 import scipy.interpolate as interpolate
+from collections import Counter
+from scipy.stats import binned_statistic_2d
 
+# Function to bin/counts data for pcolor
+def get_counts_binnned_data(VAR1,VAR2,BINS):
+    """
+    FUNCTION TO COMPUTE DENSITY/COUNTS FROM TWO VARIABLES
+    
+    Parameters
+    ----------
+    VAR1: np array that can be masked; can be 2D
+    VAR2: np array that can be masked; can be 2D
+    BINS: number of bins that you want to use to bin the data
+    """
+    
+    if len(VAR1.shape) >= 2:
+        VAR1 = VAR1.ravel(order='C')
+        VAR2 = VAR2.ravel(order='C')
+        
+    if  np.ma.is_masked(VAR1) == 'True':
+        VAR2 = VAR2[~VAR2.mask]
+        VAR1 = VAR1[~VAR1.mask]
+    
+    # Obtain counts
+    stats_counts = binned_statistic_2d(x=VAR2, y=VAR1, values=VAR1, statistic='count', bins=BINS)
+    
+    z_sigma, x_edges, y_edges = stats_counts[0], stats_counts[1], stats_counts[2]
+    z_rot = np.rot90(z_sigma)  # rotate and flip to properly display...
+    z_rot_flip = np.flipud(z_rot)
+    # -----------------------------------------------------------------------
+    # Estimate density function and probabiblity 
+    VAR_density = VAR2[~VAR2.mask].data
+    c = Counter(VAR_density)
+    total = sum(c.values())
+    probability_VAR = {k:v/total for k,v in c.items()}
+    VAR_densityList = np.ndarray.tolist(VAR_density)
+    
+    probabilityCounter = []
+    for i in range(len(VAR_densityList)):
+        probabilityCounter.append(probability_VAR.get(VAR_densityList[i],0))
+
+    probabilityCounter = np.array(probabilityCounter)*10000.
+    
+    return x_edges, y_edges, z_rot_flip
 
 # moving average filter
 def mov_av(N,mylist):

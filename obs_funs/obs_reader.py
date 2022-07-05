@@ -40,7 +40,7 @@ def obs_reader(File):
 def get_mean_stats(stat):
     return np.nanmean(np.array(stat))
 
-def read_summary_csv(fileIn):
+def read_site_csv(fileIn):
     """Function to read the .CSV files with the summary stats;
     Stats are per location (IDs)
     
@@ -55,7 +55,7 @@ def read_summary_csv(fileIn):
         r   = []
         std = []
               
-        # Read SumamrStats.CSV file per variable
+        # Read SiteStats.CSV file per variable
         header = ['ID','Lat','Lon','Samples','Model Mean','Model Std','Ob Mean','Ob Std',
                   'Bias','RMSD','Error Std','SI','Sym Slope','R value','Slope','Offset'] 
                   
@@ -96,3 +96,44 @@ def read_summary_csv(fileIn):
         print(str(Mstats))
                 
     return lat, lon, mean, b, rmse, std, r 
+
+def read_summary_csv(File):
+    """Read data from .csv summarystats files from observations that are produced by the verification scripts
+    
+    Returns:
+        - AREAS
+        - BIAS
+        - RMSD 
+        - PIERSON CORR. COEF. (R)
+        - ERROR STD """
+    
+    #E.g.
+    #File = '/data/users/nvalient/verification/verification_PS45-FCST/ps45-gblW/plots/T+24/SummaryStats_T+24_WFVS_20191204_20200125_Hs.csv'
+    Headers = ["Area","Samples","Model Mean", "Model Std","Ob Mean","Ob Std","Bias","RMSD","Error Std",
+           "SI","Sym Slope","R value","Slope","Offset"]
+
+    with open(File, 'r') as file:
+        all_data  = [line.strip() for line in file.readlines()]
+        head      = all_data[0]
+        head2     = all_data[1]
+        head_list = head2.strip().split(',')
+        data      = all_data[2:]
+        
+        area  = []   
+        BIAS  = [] 
+        RMSD  = [] 
+        RVALUE = []
+        STDERROR = []
+
+        for ia, line in enumerate(data):
+
+            List  = line.strip().split(',')
+            
+            area.append(List[0]) 
+            BIAS.append(float(List[6]))   
+            RMSD.append(float(List[7]))  
+            RVALUE.append(float(List[11]))   
+            STDERROR.append(float(List[8]))   
+
+        
+    return area, BIAS, RMSD, RVALUE, STDERROR

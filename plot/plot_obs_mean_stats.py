@@ -4,6 +4,7 @@
 Created on Tue Nov 16 15:14:05 2021
 
     SET OF FUNCTIONS TO PLOT MEAN STATISTICS OF MODEL RUNS AGAINST  IN-SITU OBSERVATIONS
+    ADDITIONAL FUNCTION TO PLOT FCST VERIFICATION USING .csv FILES 
     TO dO: add the possibility to compute basic stats from MA data (including the gridding option)
 
 @author: nvalient
@@ -17,6 +18,7 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
 #from pathlib import Path
+import pyww3.obs_funs.obs_reader.read_summary_csv as readCSV
 
 transform = ccrs.PlateCarree()
 
@@ -357,4 +359,123 @@ def plot_obs_stats_r(out_dir,lon_stat,lat_stat,var,val_stat,run,nwshelf=True):
             plt.savefig(out_name2,bbox_inches="tight", pad_inches=0.1,dpi=300)
             plt.close()
     
+    return
+
+def get_var_from_obstype(obs_type):
+    
+    if obs_type == 'WFVS':
+        var_obstype = ['Hs','T02','Tp','Wdir','Ws']
+        var_title = ['$H_s$ [$m$]','$T_{02}$ [$s$]','$T_p$ [$s$]' ,'$U_{10}\ dir.$ [$^\circ$]','$U_{10}$ [$ms^{-1}$] ']
+    elif obs_type == 'WAVENET':
+        var_obstype = ['Hs','T02','Tp','Spr','Dirn']
+        var_title = ['$H_s$ [$m$]','$T_{02}$ [$s$]','$T_p$ [$s$]','Spr','$Dir.$ [$^\circ$]']
+    elif obs_type == 'SHPSYN':
+        var_obstype = ['Hs','T02','Tp','Wdir','Ws']
+        var_title = ['$H_s$ [$m$]','$T_{02}$ [$s$]','$T_p$ [$s$]' ,'$U_{10}\ dir.$ [$^\circ$]','$U_{10}$ [$ms^{-1}$] ']
+    elif obs_type == 'MA_SUP03':
+        var_obstype = ['Hs','Ws']
+        var_title = ['$H_s$ [$m$]','$U_{10}$ [$ms^{-1}$] ']
+    
+    return var_obstype,var_title
+
+def plot_FCST(inFolder,inFolderCTRL,date_str,obs_type,OUT_DIR):
+    
+    """"
+    Function to plot the mean bias and RMSD of model run versus control run
+        Input parameters:
+            - inFolder = complete path to verification including the running folder
+            - inFolderCTRL = complete path to verification including the running folder CTRL
+            - date_str = string with STARTDATE_ENDDATE e.g., '20191204_20200125'
+            - obs_type = string with the observations name; i.e., WAVENET, SHPSYN, WFVS, MA_SUP03
+            - OUT_DIR = complete path where the plot should be stored
+            
+        Output: .png with two subplots including stats (bias and RMSD) over FCST lead time 
+    """
+    
+    var_obstype,var_title = get_var_from_obstype(obs_type)
+    FCST_LEN = ['T+24','T+48','T+72','T+96','T+120','T+144']
+    
+    for indvar, ivar in enumerate(var_obstype):
+        biasActr = []
+        biasA = []
+        
+        for ia, ifcst in enumerate(FCST_LEN):
+            # CONTROL (CTRL)
+            filenamectr = join(inFolderCTRL,'plots',ifcst,'SummaryStats_'+ifcst+'_'+obs_type+'_'+date_str+'_'+ivar+'.csv')
+            areactr, BIASctr, RMSDctr, RVALUEctr, STDERRORctr = readCSV(filenamectr)
+            # NEW RUN/PS 
+            filename = join(inFolder,'plots',ifcst,'SummaryStats_'+ifcst+'_'+obs_type+'_'+date_str+'_'+ivar+'.csv')
+            area, BIAS, RMSD, RVALUE, STDERROR = readCSV(filename)
+            
+            # concatenate the values per variable as areas are expected to match between trials matchup 
+            # At the moment only for BIAS and RMSD        
+            
+            if ia == 0:
+                area_KEY = area
+                biasActr = BIASctr
+                biasA    = BIAS
+                RMSDActr = RMSDctr
+                RMSDA    = RMSD
+
+            if ia > 0:
+                # Need to make sure that areas are the same:
+                imatch = [area_KEY.index(iw) for iw in area]
+                #-----------------------------------------------------------------
+                # Create nan array of length areas key
+                arrNan = np.empty(len(area_KEY))
+                arrNan[:] = np.NaN
+                arrNanctr = np.copy(arrNan)
+                arrNan[imatch]=np.array(BIAS,dtype=float)            
+                arrNanctr[imatch]=np.array(BIASctr,dtype=float)
+                           
+                biasActr = np.vstack((biasActr,arrNanctr))
+                biasA    = np.vstack((biasA,arrNan))
+                
+                arrNan[imatch]=np.array(RMSD,dtype=float)  
+                arrNanctr[imatch]=np.array(RMSDctr,dtype=float)
+                RMSDActr = np.vstack((RMSDActr,arrNanctr))
+                RMSDA    = np.vstack((RMSDA,arrNan))
+                
+        # transpose the array
+        biasActr = np.transpose(biasActr)
+        biasA    = np.transpose(biasA)
+        RMSDActr = np.transpose(RMSDActr)
+        RMSDA    = np.transpose(RMSDA)
+        
+        for i in range(len(area)):
+    
+            # setup figure
+            f = plt.figure(figsize=(14,5))
+            
+            axs = f.add_subplot(211)
+            axs.plot(range(len(FCST_LEN)),biasActr[i], label='CTRL',
+                           c ='k', marker='o', ls='-', lw=2, ms=6)
+            axs.plot(range(len(FCST_LEN)),biasA[i],label='PS45',
+                           c ='g', marker='o', ls='-', lw=2, ms=6)
+            axs.set_xticks(range(len(FCST_LEN))) 
+            axs.set_xticklabels(FCST_LEN)
+            plt.setp(axs.get_yticklabels(), fontsize=12)
+            plt.setp(axs.get_xticklabels(), fontsize=12)
+            axs.set_ylabel('Bias',fontsize=12)
+            axs.legend()
+            axs.set_title(var_title[indvar], fontsize =12)
+            axs.grid(True, lw=0.5, ls=':', c='gray')
+                      
+            axs = f.add_subplot(212)
+            axs.plot(range(len(FCST_LEN)),RMSDActr,label='CTRL',
+                           c ='k', marker='o', ls='-', lw=2, ms=6)
+            axs.plot(range(len(FCST_LEN)),RMSDA,label='PS45',
+                           c ='g', marker='o', ls='-', lw=2, ms=6)
+            axs.set_xticks(range(len(FCST_LEN))) 
+            axs.set_xticklabels(FCST_LEN)
+            plt.setp(axs.get_yticklabels(), fontsize=12)
+            plt.setp(axs.get_xticklabels(), fontsize=12)
+            axs.set_ylabel('RMSD',fontsize=12) 
+            axs.grid(True, lw=0.5, ls=':', c='gray')
+            
+            out_name = join(OUT_DIR,ivar+'_'+area[i]+'_FCST_verification.png')
+            plt.savefig(out_name,bbox_inches="tight", pad_inches=0.1, dpi=300)
+            plt.close()   
+            print('Figure FCST evaluation saved')
+            
     return
