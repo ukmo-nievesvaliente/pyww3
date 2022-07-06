@@ -132,7 +132,10 @@ def read_summary_csv(File):
             area.append(List[0]) 
             BIAS.append(float(List[6]))   
             RMSD.append(float(List[7]))  
-            RVALUE.append(float(List[11]))   
+            try:
+                RVALUE.append(float(List[11])) 
+            except IndexError:
+                print('RVALUE not included in VAR')
             STDERROR.append(float(List[8]))   
 
         

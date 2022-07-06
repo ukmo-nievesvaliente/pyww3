@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 
 # plotting routines to be used for CMEMS wave verification
+# functions inherited from MOLevel1-wavetools by A. Saulter See https://github.com/ukmo-ansaulter/MOLevel1-wavetools.git
+# Additions and modifications for more functionality by N.G. Valiente   
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
