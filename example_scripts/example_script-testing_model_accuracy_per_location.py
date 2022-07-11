@@ -64,8 +64,8 @@ for ii,ids in enumerate(LOC_ID):
         dir_files.sort()
         for file in dir_files:
             print('[INFO] Reading data from '+file)
-    
-            latsarr, lonsarr, vtarr, myvarobs, myvarmod = rdobs.read_collocation_files(join(DIR_IN,str(MM_ini),file),ids)
+            myvar = 'hs' # Could be 'ws'    
+            latsarr, lonsarr, vtarr, myvarobs, myvarmod = rdobs.read_collocation_files(join(DIR_IN,str(MM_ini),file),ids,myvar)
             var_obs = np.append(var_obs,myvarobs)
             var_mod = np.append(var_mod,myvarmod)
             

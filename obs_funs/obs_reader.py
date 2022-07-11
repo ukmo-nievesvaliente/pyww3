@@ -2,6 +2,8 @@ import numpy as np
 from collections import OrderedDict
 import os
 import csv
+import ver.collocation as col
+import datetime as dt
 
 def obs_reader(File):
   
@@ -140,3 +142,52 @@ def read_summary_csv(File):
 
         
     return area, BIAS, RMSD, RVALUE, STDERROR
+
+def read_collocation_files(obs_file,LOC_ID,myvar):
+    """Reading .nc files with from operational collocation files
+       netCDF include merged altimeter super-observation files."
+       LOC_ID  = string ID (one at a time)
+       myvar = string containing 'hs' or 'ws'
+       """
+
+    print('[INFO] Reading data from '+obs_file)
+    m = col.Matchup.from_class2_file(obs_file)
+    
+    # Show some info:
+    print(m)
+
+    # sort by observation time
+    i = np.argsort(m.time)
+    m = m[i]
+    #remove masked values and those in the previous day (if any)
+    tdate = dt.datetime( np.int(obs_file[-11:-7]),np.int(obs_file[-7:-5]),np.int(obs_file[-5:-3]) )
+    vtarr0 = col.datetime_util.num2date(m.time)
+    idate = np.where(vtarr0>=tdate)
+
+    latsarr0 = np.copy(m.lat[idate]) # if already rotated, name them as rlat and rlon
+    lonsarr0 = np.copy(m.lon[idate])
+    idsarr  = np.copy(m.obid[idate])
+    vtarr1   = np.copy(vtarr0[idate])
+
+    #only values for idtype == wavenet and buoyB
+    # Obs for location id 6200288
+    mask = idsarr == LOC_ID    
+    
+
+    vtarr   = vtarr1[mask]
+
+    latsarr = latsarr0[mask]
+    lonsarr = lonsarr0[mask]
+    
+    try:
+        myvar1 = np.copy(m.obs[myvar][idate])
+        myvarobs  = myvar1[mask]
+
+        myvarm1 = np.copy(m.model[myvar][idate])
+        myvarmod  = myvarm1[mask]
+        
+    except:
+        myvarobs = None
+        myvarmod = None        
+
+    return latsarr, lonsarr, vtarr, myvarobs, myvarmod
