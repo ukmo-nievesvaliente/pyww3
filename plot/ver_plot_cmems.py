@@ -162,6 +162,7 @@ def PlotScatQQ( xdata, ydata, axisres=1.0, qqplt=1, hexbin=None, linfit=False, g
     # apply axis limits
     plt.xlim( axlims )
     plt.ylim( axlims )
+    #plt.ylim( [1.,12.] )
 
     # legend
     plt.legend(loc='lower right', fontsize='small')

@@ -195,7 +195,7 @@ def get_limits_plots(matrix):
         hsmin = np.nanmin(np.array(dup))
     return hsmax, hsmin
 
-def get_snapshots(filer, ST, var,  dimension, out_name, title_ini):
+def get_snapshots(filer, var,  dimension, out_name, title_ini):
     
     """
     Created on 30 September 15:17:23 2021
@@ -290,7 +290,7 @@ def get_snapshots(filer, ST, var,  dimension, out_name, title_ini):
     
     return
 
-def get_snapshots_diff(filer1, filer2, ST, var,  dimension, out_name, title_ini):
+def get_snapshots_diff(filer1, filer2, var,  dimension, out_name, title_ini):
     
     """
     Created on 30 September 15:17:23 2021
@@ -405,7 +405,7 @@ def get_snapshots_diff(filer1, filer2, ST, var,  dimension, out_name, title_ini)
     
     return
 
-def get_mean_diff(filer1, filer2, ST, var,  dimension, out_name, title_ini):
+def get_mean_diff(filer1, filer2, var,  dimension, out_name, title_ini):
     
     """
     Created on 11 October 15:17:23 2021
@@ -509,7 +509,7 @@ def get_mean_diff(filer1, filer2, ST, var,  dimension, out_name, title_ini):
     
     return
 
-def get_mean(filer, ST, var,  dimension, out_name, title_ini):
+def get_mean(filer, var,  dimension, out_name, title_ini):
     
     """
     Created on 30 September 15:17:23 2021

@@ -106,7 +106,8 @@ def get_dict():
     
     VAR['mean_hs']={}
     VAR['mean_hs']['short_n'] = 'Hs'
-    VAR['mean_hs']['colorbar'] = 'nipy_spectral'
+    #VAR['mean_hs']['colorbar'] = 'nipy_spectral'
+    VAR['mean_hs']['colorbar'] = 'plasma'
     VAR['mean_hs']['limits'] = [0,7]
     VAR['mean_hs']['limits_diff'] = [-2,2]
     
@@ -118,7 +119,8 @@ def get_dict():
     
     VAR['mean_t02']={}
     VAR['mean_t02']['short_n'] = 'T02'
-    VAR['mean_t02']['colorbar'] = 'hsv'
+    #VAR['mean_t02']['colorbar'] = 'hsv'
+    VAR['mean_t02']['colorbar'] = 'cividis'
     VAR['mean_t02']['limits'] = [0,12]
     VAR['mean_t02']['limits_diff'] = [-2,2]  
     # ------------------ BIAS -----------------------
