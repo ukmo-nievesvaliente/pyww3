@@ -119,7 +119,7 @@ def get_site_indices(lsm, outfile, buoyfiles=['gbl_intercomparison_sites.txt','w
     return midx,lon,lat
 
 def extract_point_timeseries_nc(infiles, ind, obs_id, ncout, obs_lat=None,
-                                obs_lon=None, variables=None):
+                                obs_lon=None, variables=None, fctype=None):
     """ Extracts point data from the netCDF file(s) specifcied in infiles.
         `ind` should be an array of pre-calculated model indices. This will
         be a 2D array (ilat, ilon) for regular grids or a 1D array (seapoint,)
@@ -233,7 +233,13 @@ def extract_point_timeseries_nc(infiles, ind, obs_id, ncout, obs_lat=None,
                     t = date2num(t)
                 else:
                     t = t[:]
-                ntimes = len(t)
+                if fctype == 'fcst':
+                    print('[INFO] The file includes fcst time')
+                    ntimes = int(6.)
+                    t = t[0:6]
+                else:
+                    ntimes = len(t)
+                    print('[INFO] The file includes ntimes ='+str(ntimes))
                 dout.variables['time'][n:n+ntimes] = np.rint(t)  # to nearest second
 
                 def _extract(v, ind, itime):
@@ -363,6 +369,8 @@ def extract_point_timeseries(infiles, pointsfile, fnout):
     ##
 
     ntimes = hs.coord('time').points.size
+    # condition to discard fcst values
+    # if ntimes
 
     # output timeseries arrays:
     hs_ts = np.ndarray((ntimes,npnts), dtype=np.float16)

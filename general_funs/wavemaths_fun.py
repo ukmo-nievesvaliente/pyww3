@@ -5,6 +5,8 @@ import math
 from scipy import optimize
 import netCDF4 as nc4
 from scipy.interpolate import griddata
+from os.path import join
+import pandas as pd
 
 # ---------------------------------------------------------------------------
 # Funtions for wave direction correction and return of x,y components 
@@ -372,3 +374,26 @@ def z_0(f_z0,z0_0,f1_z0,charn,U10):
        root = optimize.newton(f_z0, z0_0, fprime=None , maxiter=100, args=(charn,U10))
 
     return root
+
+def func_Donelan():
+    '''
+    Function to plot the values in fig. 6 of Donelan 2018 "On the Decrease of the Oceanic Drag
+    Coefficient in High Winds" see https://doi.org/10.1002/2017JC013394
+    '''
+    
+    dataIn='/data/users/nvalient/tabu_stress/Donelan2018'
+    datasets=['Donelan_2018_modelled_50km_fetch.txt','Donelan_2018_modelled_230km_fetch.txt','obs_edson_et_al_2013_Jarosz_el_al_2007.txt']
+    C = np.empty([3,29])
+    C[:] = np.nan
+    U = np.copy(C)
+    # extract the data
+    for i,data in enumerate(datasets):
+        filename=join(dataIn,data)
+        df=pd.read_csv(filename,
+                       header = None, engine='python')
+        df.columns = ['U10','CD']
+        u10=df['U10'][:]
+        U[i,0:len(u10)]=u10.to_numpy(dtype=float) 
+        C[i,0:len(u10)]=df['CD'][:].to_numpy(dtype=float)
+        
+    return U,C

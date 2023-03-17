@@ -90,17 +90,21 @@ class varTimeseries:
         self.varname        = varname
         
         if obs_name in 'WFVS':
-            print('[DEBUG] Entering in the if condition for WFVS')
+            print('[DEBUG] Entering in the if condition for WFVS???')
+            print(ncfile)
             buoylist    = '/data/cr1/frxs/waves_python/r1272_79/ver_trials_scripts/platform_lists/proposed_buoy_list_intercomparison_October2013'
+            if 'waves_' in ncfile:
+                print('IN LOOOOOOOOOOOOOOOOOOOOP')
+                # sitesarr, idsarr, latsarr, lonsarr, vtarr, wsarr, wdarr, hsarr, tparr, tzarr, tearr, hmaxarr
+                sitesobs, idsobs, latsobs, lonsobs, vtobs, wsobs, wdobs, hsobs, tpobs, tzobs, teobs, hmaxobs = wamrw.read_wfvs(ncfile, buoylist)
+                #print('ids ib buoylist are'+ idsobs)
             if '_data_' in ncfile:                
                 obs_file = ncfile[-10:]
-                dirIn = ncfile[:-16]
+                dirIn = ncfile[:-16] 
                 # call to function to read new file in read_JCOMM_wave_new
                 print('[INFO] New month, reading observation data from: '+'*'+ncfile)
                 sitesobs, idsobs, latsobs, lonsobs, vtobs, hsobs, tpobs, tzobs, teobs, wsobs, wdobs = rjcomm.read_wfvsAllVar(dirIn, obs_file, buoylist)
-            else:
-                sitesobs, idsobs, latsobs, lonsobs, vtobs, wsobs, wdobs, hsobs, tpobs, tzobs, teobs = wamrw.read_wfvs(ncfile, buoylist)
-                print('[DEBUG] list id obs is '+idsobs)      
+                     
             print('[DEBUG] id obs is '+IDs)
             print('[DEBUG] NOT PRINTINGGGG')
             

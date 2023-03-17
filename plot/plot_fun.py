@@ -9,8 +9,47 @@ import cartopy.feature as cfeature
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
 import general_funs.wavemaths_fun as wmf
 import pyww3.plot.plot_obs_extremes as poext
+import netCDF4 as nc4
+import warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning) 
 #from pathlib import Path
 transform = ccrs.PlateCarree()
+
+# PHYSICAL variables ----------------------------------------------
+
+g         = 9.81         # [m2/s] gravitational acceleration
+rhoa      = 1.225        # [kg/m3] air density
+kk        = 0.4          # von Karman constant
+cva       = 1.54e-6      # kinematic viscosity of air times
+                         # gustiness constant for z0 (=0.11)
+
+# ----------------------------------------------------------------
+
+def get_wspd_and_cd(file):
+    n     = nc4.Dataset(file)
+    ncvar = n.variables
+    # units = ncvar['time'].units
+    # t = np.array([ncvar['time'][:]])
+    # dates = nc4.num2date(t,units,calendar='gregorian',
+    #                              only_use_cftime_datetimes=False,only_use_python_datetimes=True)
+    print('Extracting data from '+file)
+    hs      = ncvar['hs'][:,:,:]
+    uwnd    = ncvar['uwnd'][:,:,:]
+    vwnd    = ncvar['vwnd'][:,:,:]
+    U10     = np.sqrt((uwnd[:,:,:])**2+(vwnd[:,:,:])**2)
+    
+    uust    = ncvar['uust'][:,:,:]
+    vust    = ncvar['vust'][:,:,:]
+    UST     = np.sqrt((uust[:,:,:])**2+(vust[:,:,:])**2)
+    
+    CHA     = ncvar['cha'][:,:,:]
+    
+    n.close()
+    Z0 = CHA*UST**2/g
+    CD = UST**2/U10**2
+    
+    #CD = CD[~CD.mask & ~U10.mask]
+    return U10, CHA, CD 
 
 def fill_land_cfeature(color='silver'):
     """Fill land when using Cartopy
@@ -93,7 +132,7 @@ def get_dict():
     
     VAR['t02']={}
     VAR['t02']['short_n'] = 't01'
-    VAR['t02']['cbarn'] =  '$T_{01}\ [s]$'
+    VAR['t02']['cbarn'] =  '$T_{02}\ [s]$'
     VAR['t02']['colorbar'] = 'gist_stern_r'
     VAR['t02']['limits'] = [0,18]
     VAR['t02']['limits_diff'] = [-2,2]
@@ -138,7 +177,7 @@ def get_dict():
     VAR['uss']['short_n'] = ['uuss','vuss']
     VAR['uss']['colorbar'] = 'inferno' # or gnuplot
     VAR['uss']['cbarn'] =  '$U_{ss}\ [ms^{-1}]$'
-    VAR['uss']['limits'] = [0,2]
+    VAR['uss']['limits'] = [0,1.2]
     VAR['uss']['limits_diff'] = [-0.2,0.2]
     
     VAR['two']={}
@@ -195,7 +234,7 @@ def get_limits_plots(matrix):
         hsmin = np.nanmin(np.array(dup))
     return hsmax, hsmin
 
-def get_snapshots(filer, var,  dimension, out_name, title_ini):
+def get_snapshots(filer, var,  dimension, out_name, title_ini, domain='UK', direction=True):
     
     """
     Created on 30 September 15:17:23 2021
@@ -214,8 +253,18 @@ def get_snapshots(filer, var,  dimension, out_name, title_ini):
     VAR   = get_dict()
     d     = nc.Dataset(filer)    
     
-    if dimension == '1D':        
-        hs   = d.variables[var]
+    if dimension == '1D':     
+        if var in d.variables:
+            hs   = d.variables[var]
+            if var == 'hs' and direction==True:
+                Dir = d.variables['dir']
+        else:
+            if var == 'sdc':
+                U10,CHA,CD=get_wspd_and_cd(filer)
+                hs=CD
+            else:
+                print('[ERROR] variable not found!')
+                exit()
         
     elif dimension == '2D':
         u11   = d.variables[VAR[var]['short_n'][0]]
@@ -250,8 +299,13 @@ def get_snapshots(filer, var,  dimension, out_name, title_ini):
     for i in range(len(t_storm)):#range(0,4):
                    
         # PLOT 
-        fig2 = plt.figure(figsize=(10, 5))
-        axes = fig2.add_subplot(111,projection=ccrs.RotatedPole(pole_latitude=37.5, pole_longitude=177.5))
+        # fig2 = plt.figure(figsize=(10, 5))
+        fig2 = plt.figure(figsize=(5, 4))
+        
+        if domain != 'UK':
+            axes = fig2.add_subplot(111,projection=ccrs.PlateCarree())            
+        else:
+            axes = fig2.add_subplot(111,projection=ccrs.RotatedPole(pole_latitude=37.5, pole_longitude=177.5))
         # remove a margin around the data
         axes.set_xmargin(0)
         axes.set_ymargin(0)
@@ -262,7 +316,20 @@ def get_snapshots(filer, var,  dimension, out_name, title_ini):
         cbar.set_label(VAR[var]['cbarn'],size=12)
         axes.coastlines(resolution='50m', color='black', linewidth=1)
         axes.add_feature(land_50)
-        if VAR[var]['short_n'][0] == 'uwnd':
+        if var == 'hs' and direction==True:
+            
+            u = hs[i,:,:] * np.cos(np.deg2rad(270 - Dir[i,:,:]))
+            v = hs[i,:,:] * np.sin(np.deg2rad(270 - Dir[i,:,:]))
+            s = 25
+            QV = axes.quiver(lon[::s], lat[::s], u[::s,::s], v[::s,::s],
+                         units='xy',
+                         angles='xy',
+                         scale=20,
+                         scale_units='inches',
+                         color='black') 
+            plt.quiverkey(QV, 0.66, 0.2, 5, "5 $m$", labelpos = "S", coordinates='figure')
+            
+        elif var == 'u10':
             U10         = u11[i,:,:]
             V10         = u12[i,:,:]
             s = 35
@@ -281,8 +348,9 @@ def get_snapshots(filer, var,  dimension, out_name, title_ini):
         
         date_time = t_storm[i]
         date_title = date_time.strftime("%d/%m/%Y, %H:%M:%S")
-        plt.title(title_ini+' '+date_title)        
-
+        plt.title(title_ini+' '+date_title)  
+        # GMD paper
+        # axes.set_extent([-7,3.5,48,51],crs=ccrs.PlateCarree())
         out_name_end = join(out_name+'_T'+str(i)+'.png')
         plt.savefig(out_name_end,bbox_inches="tight", pad_inches=0.1, dpi=150)
         print ('Saving '+var+' png ' +'snapshot' +' time='+str(i))
@@ -290,7 +358,7 @@ def get_snapshots(filer, var,  dimension, out_name, title_ini):
     
     return
 
-def get_snapshots_diff(filer1, filer2, var,  dimension, out_name, title_ini):
+def get_snapshots_diff(filer1, filer2, var,  dimension, out_name, title_ini,domain='UK'):
     
     """
     Created on 30 September 15:17:23 2021
@@ -316,16 +384,25 @@ def get_snapshots_diff(filer1, filer2, var,  dimension, out_name, title_ini):
         if var in d2.variables:
             hs1   = d.variables[var][:,:,:]
             hs2   = d2.variables[var][:,:,:]
-            
+            # if var == 'hs':
+            #     Dir1 = d.variables['dir']
+            #     Dir2 = d2.variables['dir']            
         else:
-            print('[WARNING] Does variable exist?')
-            hs1   = d.variables[var][:,:,:]
-            if var == 'rhoa':
-                print('[WARNING] Using cte for density')
-                hs2   = 1.225
+            if var == 'sdc':
+                U101,CHA1,CD1=get_wspd_and_cd(filer1)
+                hs1=CD1
+                U102,CHA2,CD2=get_wspd_and_cd(filer2)
+                hs2=CD2
+                
             else:
-                print('[ERROR] variable not found!')
-                exit()
+                print('[WARNING] Does variable exist?')
+                hs1   = d.variables[var][:,:,:]
+                if var == 'rhoa':
+                    print('[WARNING] Using cte for density')
+                    hs2   = 1.225
+                else:
+                    print('[ERROR] variable not found!')
+                    exit()
         hs = hs1-hs2
         
     elif dimension == '2D':
@@ -375,10 +452,16 @@ def get_snapshots_diff(filer1, filer2, var,  dimension, out_name, title_ini):
     lon        = d.variables['longitude'][:]
  
     for i in range(len(t_storm)):
+    # for i in range(5,12):
                    
         # PLOT 
-        fig2 = plt.figure(figsize=(10, 5))
-        axes = fig2.add_subplot(111,projection=ccrs.RotatedPole(pole_latitude=37.5, pole_longitude=177.5))
+        # fig2 = plt.figure(figsize=(10, 5))
+        fig2 = plt.figure(figsize=(6, 5))
+        
+        if domain != 'UK':
+            axes = fig2.add_subplot(111,projection=ccrs.PlateCarree())  
+        else:
+            axes = fig2.add_subplot(111,projection=ccrs.RotatedPole(pole_latitude=37.5, pole_longitude=177.5))
         # remove a margin around the data
         axes.set_xmargin(0)
         axes.set_ymargin(0)
@@ -389,6 +472,29 @@ def get_snapshots_diff(filer1, filer2, var,  dimension, out_name, title_ini):
         cbar.set_label(VAR[var]['cbarn'],size=12)
         axes.coastlines(resolution='50m', color='black', linewidth=1)
         axes.add_feature(land_50)
+        # GMD paper code
+        # if var == 'hs' :
+        #     u = hs1[i,:,:] * np.cos(np.deg2rad(270 - Dir1[i,:,:]))
+        #     v = hs1[i,:,:] * np.sin(np.deg2rad(270 - Dir1[i,:,:]))
+        #     s = 15
+        #     QV = axes.quiver(lon[::s], lat[::s], u[::s,::s], v[::s,::s],
+        #                  units='xy',
+        #                  angles='xy',
+        #                  scale=15,
+        #                  scale_units='inches',
+        #                  color='blue') 
+        #     # plt.quiverkey(QV, 0.66, 0.2, 5, "5 $m$", labelpos = "S", coordinates='figure')
+        #     #----------------------------------------------------------------
+        #     u = hs2[i,:,:] * np.cos(np.deg2rad(270 - Dir2[i,:,:]))
+        #     v = hs2[i,:,:] * np.sin(np.deg2rad(270 - Dir2[i,:,:]))
+        #     QV = axes.quiver(lon[::s], lat[::s], u[::s,::s], v[::s,::s],
+        #                  units='xy',
+        #                  angles='xy',
+        #                  scale=15,
+        #                  scale_units='inches',
+        #                  color='orange') 
+        #     # plt.quiverkey(QV, 0.66, 0.2, 5, "5 $m$", labelpos = "S", coordinates='figure')            
+                 
         lon_formatter = LongitudeFormatter(zero_direction_label=True)
         lat_formatter = LatitudeFormatter()
         axes.xaxis.set_major_formatter(lon_formatter)
@@ -396,8 +502,11 @@ def get_snapshots_diff(filer1, filer2, var,  dimension, out_name, title_ini):
         
         date_time = t_storm[i]
         date_title = date_time.strftime("%d/%m/%Y, %H:%M:%S")
-        plt.title(title_ini+' '+date_title)        
-
+        plt.title(title_ini+' '+date_title)  
+        # GMD paper code
+        # plt.title(date_title)
+        # axes.set_extent([-5,3,48,51],crs=ccrs.PlateCarree())
+        # # axes.set_extent([-7,5,48,51],crs=ccrs.PlateCarree())
         out_name_end = join(out_name+'_'+str(i)+'.png')
         plt.savefig(out_name_end,bbox_inches="tight", pad_inches=0.1, dpi=150)
         print ('Saving '+var+' png ' +'snapshot_diff time='+str(i))
@@ -405,7 +514,7 @@ def get_snapshots_diff(filer1, filer2, var,  dimension, out_name, title_ini):
     
     return
 
-def get_mean_diff(filer1, filer2, var,  dimension, out_name, title_ini):
+def get_mean_diff(filer1, filer2, var,  dimension, out_name, title_ini, domain='UK'):
     
     """
     Created on 11 October 15:17:23 2021
@@ -484,7 +593,11 @@ def get_mean_diff(filer1, filer2, var,  dimension, out_name, title_ini):
                      
     # PLOT 
     fig2 = plt.figure(figsize=(10, 5))
-    axes = fig2.add_subplot(111,projection=ccrs.RotatedPole(pole_latitude=37.5, pole_longitude=177.5))
+    
+    if domain != 'UK':
+        axes = fig2.add_subplot(111,projection=ccrs.PlateCarree())  
+    else:
+        axes = fig2.add_subplot(111,projection=ccrs.RotatedPole(pole_latitude=37.5, pole_longitude=177.5))
     # remove a margin around the data
     axes.set_xmargin(0)
     axes.set_ymargin(0)
@@ -509,7 +622,7 @@ def get_mean_diff(filer1, filer2, var,  dimension, out_name, title_ini):
     
     return
 
-def get_mean(filer, var,  dimension, out_name, title_ini):
+def get_mean(filer, var,  dimension, out_name, title_ini, domain='UK'):
     
     """
     Created on 30 September 15:17:23 2021
@@ -555,7 +668,11 @@ def get_mean(filer, var,  dimension, out_name, title_ini):
                    
     # PLOT 
     fig2 = plt.figure(figsize=(10, 5))
-    axes = fig2.add_subplot(111,projection=ccrs.RotatedPole(pole_latitude=37.5, pole_longitude=177.5))
+    
+    if domain != 'UK':
+        axes = fig2.add_subplot(111,projection=ccrs.PlateCarree())  
+    else:
+        axes = fig2.add_subplot(111,projection=ccrs.RotatedPole(pole_latitude=37.5, pole_longitude=177.5))
     # remove a margin around the data
     axes.set_xmargin(0)
     axes.set_ymargin(0)
