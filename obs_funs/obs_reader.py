@@ -154,7 +154,7 @@ def read_collocation_files(obs_file,LOC_ID,myvar):
     m = col.Matchup.from_class2_file(obs_file)
     
     # Show some info:
-    print(m)
+    #print(m)
 
     # sort by observation time
     i = np.argsort(m.time)

@@ -162,7 +162,8 @@ def PlotScatQQ( xdata, ydata, axisres=1.0, qqplt=1, hexbin=None, linfit=False, g
     # apply axis limits
     plt.xlim( axlims )
     plt.ylim( axlims )
-    #plt.ylim( [1.,12.] )
+    # plt.xlim( [1.,12.] )
+    # plt.ylim( [1.,12.] )
 
     # legend
     plt.legend(loc='lower right', fontsize='small')
@@ -327,7 +328,7 @@ def TextStats(xdata, ydata, units=None, linfit=True, errorstats=True, basicstats
             plt.text(xpt,ypt,'RMSD = ' + myvalstr, fontsize=fonts )
             ypt = ypt - dy
             myvalstr = MyValStr( estd, units=units )
-            plt.text(xpt,ypt,'StdE = ' + myvalstr, fontsize=fonts )
+            plt.text(xpt,ypt,'SdE = ' + myvalstr, fontsize=fonts )
             ypt = ypt - dy
             myvalstr = MyValStr( sind )
             plt.text(xpt,ypt,'SI = ' + myvalstr, fontsize=fonts )
@@ -355,7 +356,7 @@ def TextStats(xdata, ydata, units=None, linfit=True, errorstats=True, basicstats
         else:
             xmax = max(xdata)/4
             xmax = max(xdata)/3 #STB
-        rect = patches.Rectangle((xpt-0.05,ypt-0.05),xmax-0.05,ymax-ypt, edgecolor='black', alpha=0.5, facecolor='white',zorder=3 )
+        rect = patches.Rectangle((xpt-0.05,ypt-0.05),xmax-0.05,ymax-ypt, edgecolor='black', alpha=0.5, facecolor='white',zorder=2)
         
         return rect
     # otherwise pass data out as a string

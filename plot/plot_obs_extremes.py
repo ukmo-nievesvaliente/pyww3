@@ -184,19 +184,22 @@ def plot_obs_stats(out_dir,lon_stat,lat_stat,var,val_stat,run,Q,nwshelf=True):
         
         fig2 = plt.figure()
         #axes = fig2.add_subplot(111,projection=ccrs.PlateCarree())
-        axes = fig2.add_subplot(111,projection=ccrs.Mercator(central_longitude=0))
+        if nwshelf is not True:
+            axes=fig2.add_subplot(111,projection=ccrs.Robinson(central_longitude=0))
+        else:
+            axes = fig2.add_subplot(111,projection=ccrs.Mercator(central_longitude=0))
         a = axes.contour(lon,lat,bat, levels, colors='grey',linewidths=.25,transform = transform)
-        axes.coastlines(resolution='50m', color='black', linewidth=1)
         axes.add_feature(land_50,zorder=1)
+        axes.coastlines(resolution='50m', color='black', linewidth=1, zorder=2)
         if nwshelf is True:
             axes.clabel(a, inline=True, fmt = '%3.0f', fontsize=6)
             e = axes.scatter(lon_stat,lat_stat,c=rr,s=(np.ones((1,len(rr))))*16,cmap=VARs[stat]['colorbar'],\
-                             vmin=VARs[stat]['limits'][0],vmax=VARs[stat]['limits'][1],transform = transform, zorder=2)
+                             vmin=VARs[stat]['limits'][0],vmax=VARs[stat]['limits'][1],transform = transform, zorder=3)
             cbar = fig2.colorbar(e,extend='both')
             axes.scatter(lon_stat,lat_stat,c='k',marker="x",s=0.6,transform = transform,zorder=3)
         if nwshelf is not True:
             e = axes.scatter(lon_stat,lat_stat,c=rr,s=(np.ones((1,len(rr))))*2,cmap=VARs[stat]['colorbar'],\
-                             vmin=VARs[stat]['limits'][0],vmax=VARs[stat]['limits'][1],transform = transform,zorder=2)
+                             vmin=VARs[stat]['limits'][0],vmax=VARs[stat]['limits'][1],transform = transform,zorder=3)
             cbar = fig2.colorbar(e,shrink=0.7,extend='both')
             #axes.scatter(lon_stat,lat_stat,c='k',marker="x",s=0.4,zorder=3)
         #cbar.set_label(VAR[stat]['short_n'])
@@ -241,20 +244,23 @@ def plot_obs_stats_r(out_dir,lon_stat,lat_stat,var,val_stat,run,Q,nwshelf=True):
         rr = val_stat[ii]
         
         fig2 = plt.figure()
-        #axes = fig2.add_subplot(111,projection=ccrs.PlateCarree())
-        axes = fig2.add_subplot(111,projection=ccrs.Mercator())
-        a = axes.contour(lon,lat,bat, levels, colors='grey',linewidths=.25,transform = transform)
-        axes.coastlines(resolution='50m', color='black', linewidths=1)
+        if nwshelf is not True:
+            axes=fig2.add_subplot(111,projection=ccrs.Robinson(central_longitude=0))
+        else:
+            axes = fig2.add_subplot(111,projection=ccrs.Mercator(central_longitude=0))
+    
+        a = axes.contour(lon,lat,bat, levels, colors='grey',linewidths=.25,transform = transform)        
         axes.add_feature(land_50, zorder=1)
+        axes.coastlines(resolution='50m', color='black', linewidths=1, zorder=2)
         if nwshelf is True:
             axes.clabel(a, inline=True, fmt = '%3.0f', fontsize=6)
             e = axes.scatter(lon_stat,lat_stat,c=rr,s=(np.ones((1,len(rr))))*12,cmap='seismic',\
-                             vmin=VAR[stat]['limits_diff'][0],vmax=VAR[stat]['limits_diff'][1], transform = transform,zorder=2)
+                             vmin=VAR[stat]['limits_diff'][0],vmax=VAR[stat]['limits_diff'][1], transform = transform,zorder=3)
             cbar = fig2.colorbar(e,extend='both')
             axes.scatter(lon_stat,lat_stat,c='k',marker="x",s=0.6,transform = transform,zorder=3)
         if nwshelf is not True:
             e = axes.scatter(lon_stat,lat_stat,c=rr,s=(np.ones((1,len(rr))))*2,cmap='seismic',\
-                             vmin=VAR[stat]['limits_diff'][0],vmax=VAR[stat]['limits_diff'][1], transform = transform,zorder=2)     
+                             vmin=VAR[stat]['limits_diff'][0],vmax=VAR[stat]['limits_diff'][1], transform = transform,zorder=3)     
             cbar = fig2.colorbar(e,shrink=0.7,extend='both')
             #axes.scatter(lon_stat,lat_stat,c='k',marker="x",s=0.4,zorder=3)
         #cbar.set_label(VAR[stat]['short_n'])

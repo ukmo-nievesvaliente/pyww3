@@ -32,8 +32,7 @@ def var_inObs(obstype,all_var=False):
     if all_var == True:
         if obstype == 'WFVS' or obstype == 'SHPSYN':
             #VAR = ['hs','ws','wdir','tp','t02']  #sometimes we have t0m1 instead of Tp
-            #VAR = ['hs','ws','wdir','t02'] 
-            VAR = ['hs','t02']
+            VAR = ['hs','ws','wdir','t02'] 
             #VAR = ['hs','ws','wdir','tp']
         elif obstype == 'WAVENET':
             VAR = ['hs','tp','t02','dir','spr']  #sometimes we have t0m1 instead of Tp
@@ -42,7 +41,7 @@ def var_inObs(obstype,all_var=False):
             #VAR = ['hs','tp','dir']
     else:
         if obstype == 'WFVS' or obstype == 'SHPSYN':
-            VAR = ['hs','ws','wdir','t02']
+            VAR = ['hs','t02']
         elif obstype == 'WAVENET':
             VAR = ['hs','t02']
     
@@ -244,7 +243,7 @@ def get_extremes_CSV(ndir,out_dir,obstype,COORD_ID,LOC_N,RUN,TINI,TEND,Q1,Q2,VAR
         # coordinate of each in-situ location
         u_ID = u[kk]   
         print('[INFO] Computation of '+u_ID+' for '+RUN+' - COORD = '+str(COORD_ID[indices[kk]])) 
-        
+                
         var_mod, var_obs, datesJ, sidJ, idN, COORD = get_timeseries(ndir,obstype,RUN,TINI,TEND,u_ID,VAR,run_folder)
         # TO DO: Possibility to add a condition for when we want to plot the timeseries?
         
@@ -277,19 +276,25 @@ def get_extremes_CSV(ndir,out_dir,obstype,COORD_ID,LOC_N,RUN,TINI,TEND,Q1,Q2,VAR
                   
             # Do some QC for the extremes; is the sample statistically significant? only if p-value < 0.1
             print('[Debug] var_mod is :'+str(var_mod))
-            print('[Debug] var_mod is :'+str(var_obs))
-            QC = pearsonr(var_mod[0,mstorm],var_obs[0,mstorm])
-            print('[INFO] The p-value for Hs,q75 is ' +str(QC[1]))
-            if QC[1] <= 0.1:                
-                for var_i in range(len(var)):
-                    bstorm[var_i,kk] = np.nanmean(var_mod[var_i,mstorm]-var_obs[var_i,mstorm]) # bias Q75
-                    bext[var_i,kk]   = np.nanmean(var_mod[var_i,mext]-var_obs[var_i,mext]) # bias Q90
-                    rext[var_i,kk]   = np.ma.corrcoef(np.ma.masked_invalid(var_mod[var_i,mext]),\
-                                                      np.ma.masked_invalid(var_obs[var_i,mext]))[0,1] # r, pierson coef.
-                    rstorm[var_i,kk] = np.ma.corrcoef(np.ma.masked_invalid(var_mod[var_i,mstorm]),\
-                                                      np.ma.masked_invalid(var_obs[var_i,mstorm]))[0,1] # r, pierson coef.
-                    Estorm[var_i,kk] = rmse(var_mod[var_i,mstorm],var_obs[var_i,mstorm])
-                    Eext[var_i,kk]   = rmse(var_mod[var_i,mext],var_obs[var_i,mext])                     
+            print('[Debug] var_obs is :'+str(var_obs))
+            if np.isnan(var_obs[0,mstorm]).all() == True:
+                print('No obs for '+u_ID)
+            else:
+                if u_ID == "2AUO5" or u_ID == "C6YM5" or u_ID == "LAXV7" or u_ID == "VRTU5":
+                    'Skipping observation'
+                else:                    
+                    QC = pearsonr(var_mod[0,mstorm],var_obs[0,mstorm])
+                    print('[INFO] The p-value for Hs,q75 is ' +str(QC[1]))
+                    if QC[1] <= 0.1:                
+                        for var_i in range(len(var)):
+                            bstorm[var_i,kk] = np.nanmean(var_mod[var_i,mstorm]-var_obs[var_i,mstorm]) # bias Q75
+                            bext[var_i,kk]   = np.nanmean(var_mod[var_i,mext]-var_obs[var_i,mext]) # bias Q90
+                            rext[var_i,kk]   = np.ma.corrcoef(np.ma.masked_invalid(var_mod[var_i,mext]),\
+                                                              np.ma.masked_invalid(var_obs[var_i,mext]))[0,1] # r, pierson coef.
+                            rstorm[var_i,kk] = np.ma.corrcoef(np.ma.masked_invalid(var_mod[var_i,mstorm]),\
+                                                              np.ma.masked_invalid(var_obs[var_i,mstorm]))[0,1] # r, pierson coef.
+                            Estorm[var_i,kk] = rmse(var_mod[var_i,mstorm],var_obs[var_i,mstorm])
+                            Eext[var_i,kk]   = rmse(var_mod[var_i,mext],var_obs[var_i,mext])                     
                 
         # save values per location bias, r, RMSE
         var_limS.append(var_storm)
