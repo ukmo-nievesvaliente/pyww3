@@ -280,6 +280,7 @@ def get_extremes_CSV(ndir,out_dir,obstype,COORD_ID,LOC_N,RUN,TINI,TEND,Q1,Q2,VAR
             if np.isnan(var_obs[0,mstorm]).all() == True:
                 print('No obs for '+u_ID)
             else:
+                # Discard some locations with few observations causing problems
                 if u_ID == "2AUO5" or u_ID == "C6YM5" or u_ID == "LAXV7" or u_ID == "VRTU5":
                     'Skipping observation'
                 else:                    
